@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, get_user_model
 
 from rest_framework import serializers
 
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, DistrictOffice, Office
 
 User = get_user_model()
 
@@ -25,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
         queryset=UserRole.objects.all(),
         source="userrole",
         write_only=True
+        
     )
 
     class Meta:
@@ -104,6 +105,18 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("This account is inactive.")
         attrs["user"] = user
         return attrs
+
+class DistrictOfficeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DistrictOffice
+        fields = ["id", "name"]
+
+
+class OfficeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Office
+        fields = ["id", "name", "district_office"]
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

@@ -132,6 +132,15 @@ function IconShield({ className = "h-5 w-5" }) {
   );
 }
 
+function IconHome({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12 12 4l9 8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9" />
+    </svg>
+  );
+}
+
 function IconProfile({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
@@ -184,6 +193,34 @@ const menuGroups = [
     ],
   },
 ];
+
+function DashboardPage({ registeredUser }) {
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[28px] border border-white/70 bg-white/85 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+        {registeredUser ? (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
+              Registration Successful
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+              Welcome, {registeredUser.username}
+            </h1>
+            <p className="mt-2 text-base text-slate-600">You are registered.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">Overview</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
+            <p className="mt-2 text-base text-slate-600">
+              Welcome to the store management system.
+            </p>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
 
 function PlaceholderPage({ eyebrow, title, description, stats }) {
   return (
@@ -264,8 +301,10 @@ function renderContent(page, handlers) {
           ]}
         />
       );
+    case "dashboard":
+      return <DashboardPage registeredUser={handlers.lastRegistered} />;
     case "user-registration":
-      return <UserRegistration onRegistered={handlers.onAuth} />;
+      return <UserRegistration onRegistered={handlers.onRegistered} />;
     case "login":
       return <LoginPage onLogin={handlers.onAuth} />;
     case "user-role":
@@ -311,6 +350,7 @@ export default function App() {
   const [avatar, setAvatar] = useState("");
   const [authUser, setAuthUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [lastRegistered, setLastRegistered] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -346,6 +386,15 @@ export default function App() {
     setPage("distribution");
   }
 
+  function handleRegistered(data) {
+    localStorage.setItem("storeAuthToken", data.token);
+    localStorage.setItem("storeAuthUser", JSON.stringify(data.user));
+    setAuthUser(data.user);
+    setIsLoggedIn(true);
+    setLastRegistered(data.user);
+    setPage("dashboard");
+  }
+
   function handleLogout() {
     localStorage.removeItem("storeAuthToken");
     localStorage.removeItem("storeAuthUser");
@@ -364,16 +413,29 @@ export default function App() {
     <div className="min-h-screen bg-white text-slate-900">
       <div className="flex min-h-screen">
         {sidebarOpen && (
-          <aside className="hidden w-[312px] shrink-0 border-r border-slate-200/80 bg-slate-950 px-5 py-6 text-slate-100 shadow-[24px_0_80px_rgba(15,23,42,0.14)] lg:flex lg:flex-col">
-            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-gray-300 p-4 shadow-lg shadow-slate-950/20">
-              <img
-                src="/images/govLogo2.png"
-                alt="Government logo"
-                className="h-36 w-full object-contain"
-              />
-            </div>
+          <aside className="hidden w-[312px] shrink-0 border-r border-slate-200/80 bg-slate-950 px-3 py-3 text-slate-100 shadow-[24px_0_80px_rgba(15,23,42,0.14)] lg:flex lg:flex-col">
+            <img
+              src="/images/govLogo2.png"
+              alt="Government logo"
+              className="h-[104px] w-full object-contain"
+            />
 
             <nav className="mt-6 flex-1 space-y-3 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => { setPage("dashboard"); setLastRegistered(null); }}
+                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
+                  page === "dashboard"
+                    ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-cyan-300">
+                  <IconHome className="h-5 w-5" />
+                </span>
+                <span className="font-semibold">Dashboard</span>
+              </button>
+
               {menuGroups.map((group) => {
                 const GroupIcon = group.icon;
                 const isOpen = openMenus[group.id];
@@ -522,7 +584,7 @@ export default function App() {
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-[1600px]">{renderContent(page, { onAuth: handleAuth })}</div>
+            <div className="mx-auto max-w-[1600px]">{renderContent(page, { onAuth: handleAuth, onRegistered: handleRegistered, lastRegistered })}</div>
           </main>
         </div>
       </div>

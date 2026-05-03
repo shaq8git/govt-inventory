@@ -6,10 +6,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, DistrictOffice, Office
 from .serializers import (
     CategorySerializer,
     DepartmentSerializer,
+    DistrictOfficeSerializer,
+    OfficeSerializer,
     UserRoleSerializer,
     IssuanceRecordSerializer,
     IssuanceRecordListSerializer,
@@ -72,9 +74,27 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         return Response(UserSerializer(request.user).data)
 
-class UserRoleViewSet(viewsets.ReadOnlyModelViewSet):
+class DistrictOfficeViewSet(viewsets.ModelViewSet):
+    queryset = DistrictOffice.objects.all()
+    serializer_class = DistrictOfficeSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name"]
+
+
+class OfficeViewSet(viewsets.ModelViewSet):
+    queryset = Office.objects.select_related("district_office").all()
+    serializer_class = OfficeSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ["district_office"]
+    search_fields = ["name"]
+
+
+class UserRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.all().order_by("id")
     serializer_class = UserRoleSerializer
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter]
     search_fields = ["rolename"]
 

@@ -32,6 +32,33 @@ class User(AbstractUser):
 
 
 
+class DistrictOffice(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Office(models.Model):
+    name = models.CharField(max_length=200)
+    district_office = models.ForeignKey(
+        DistrictOffice,
+        on_delete=models.CASCADE,
+        related_name="offices",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Category(models.Model):
     """Top-level grouping of stock items (e.g. Paper Supplies, Stationery, Toner)"""
     name = models.CharField(max_length=200, unique=True)
