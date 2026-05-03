@@ -1,5 +1,48 @@
 from django.contrib import admin
-from .models import Category, Department, IssuanceLine, IssuanceRecord, StockItem
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+
+from .models import Category, Department, IssuanceLine, IssuanceRecord, StockItem, User
+from django.contrib.auth.models import Group
+
+admin.site.unregister(Group)
+
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    fieldsets = DjangoUserAdmin.fieldsets + (
+        (
+            "Store user info edit form",
+            {
+                "fields": (
+                    "designation",
+                    "office_id",
+                    "districtoffice_id",
+                    "aprflag",
+                    "mobileno",
+                    "status_id",
+                    "otpdate",
+                    "lotpno",
+                )
+            },
+        ),
+    )
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (
+        (
+            "Store user info create form",
+            {
+                "fields": (
+                    "email",
+                    "designation",
+                    "office_id",
+                    "districtoffice_id",
+                    "mobileno",
+                    "status_id",
+                )
+            },
+        ),
+    )
+    list_display = ["username", "email", "designation", "mobileno", "is_staff", "is_active"]
+    search_fields = ["username", "email", "first_name", "last_name", "designation", "mobileno"]
+    list_filter = DjangoUserAdmin.list_filter + ("status_id", "aprflag")
 
 
 @admin.register(Category)

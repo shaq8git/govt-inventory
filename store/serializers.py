@@ -1,5 +1,109 @@
+from django.contrib.auth import authenticate, get_user_model
+
 from rest_framework import serializers
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine
+
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole
+
+User = get_user_model()
+
+
+""" class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ["id", "name"] """
+
+class UserRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRole
+        fields = ["id", "rolename"]
+
+class UserSerializer(serializers.ModelSerializer):
+    
+    userrole = UserRoleSerializer(read_only=True)
+
+    userrole_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserRole.objects.all(),
+        source="userrole",
+        write_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "designation",
+            "office_id",
+            "districtoffice_id",
+            "aprflag",
+            "mobileno",
+            "status_id",
+            "otpdate",
+            "lotpno",
+            "is_active",
+            "userrole",
+            "userrole_id",
+
+        ]
+
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, min_length=8)
+
+
+    userrole = serializers.PrimaryKeyRelatedField(
+        queryset=UserRole.objects.all(),
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "designation",
+            "office_id",
+            "districtoffice_id",
+            "aprflag",
+            "mobileno",
+            "status_id",
+            "otpdate",
+            "lotpno",
+            "userrole",
+        ]
+
+    def create(self, validated_data):
+        
+        password = validated_data.pop("password")
+
+        user = User.objects.create_user(password=password, **validated_data)
+        
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = authenticate(
+            request=self.context.get("request"),
+            username=attrs["username"],
+            password=attrs["password"],
+        )
+        if user is None:
+            raise serializers.ValidationError("Invalid username or password.")
+        if not user.is_active:
+            raise serializers.ValidationError("This account is inactive.")
+        attrs["user"] = user
+        return attrs
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

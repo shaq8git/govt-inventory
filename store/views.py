@@ -1,10 +1,89 @@
-from rest_framework import viewsets, filters
+from django.contrib.auth import get_user_model
+from rest_framework import viewsets, filters, status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine
-from .serializers import (CategorySerializer, StockItemSerializer, DepartmentSerializer, IssuanceRecordSerializer, IssuanceRecordListSerializer)
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole
+from .serializers import (
+    CategorySerializer,
+    DepartmentSerializer,
+    UserRoleSerializer,
+    IssuanceRecordSerializer,
+    IssuanceRecordListSerializer,
+    LoginSerializer,
+    StockItemSerializer,
+    UserRegistrationSerializer,
+    UserSerializer,
+)
+
+User = get_user_model()
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.prefetch_related("groups").all()
+    serializer_class = UserSerializer
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ["username", "email", "first_name", "last_name", "designation", "mobileno"]
+    filterset_fields = ["groups", "office_id", "districtoffice_id", "status_id", "aprflag", "is_active"]
+    ordering_fields = ["username", "email", "date_joined"]
+
+    def get_permissions(self):
+        if self.action in {"register", "login"}:
+            return [AllowAny()]
+        if self.action in {"me", "logout"}:
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == "register":
+            return UserRegistrationSerializer
+        if self.action == "login":
+            return LoginSerializer
+        return UserSerializer
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
+    def register(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        token, _created = Token.objects.get_or_create(user=user)
+        return Response(
+            {"token": token.key, "user": UserSerializer(user).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
+    def login(self, request):
+        serializer = LoginSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        token, _created = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "user": UserSerializer(user).data})
+
+    @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
+    def logout(self, request):
+        Token.objects.filter(user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        return Response(UserSerializer(request.user).data)
+
+class UserRoleViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = UserRole.objects.all().order_by("id")
+    serializer_class = UserRoleSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["rolename"]
+
+
+""" class GroupViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Group.objects.all().order_by("id", "name")
+    serializer_class = GroupSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name"] """
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
