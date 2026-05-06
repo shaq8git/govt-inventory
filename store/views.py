@@ -6,13 +6,24 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, DistrictOffice, Office
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status
 from .serializers import (
     CategorySerializer,
+    CircleOfficeSerializer,
     DepartmentSerializer,
+    DesignationSerializer,
     DistrictOfficeSerializer,
+    HeadOfficeSerializer,
+    MfccompanySerializer,
+    MonthCycleSerializer,
+    MonthListSerializer,
     OfficeSerializer,
+    ProductGroupSerializer,
+    ProductSerializer,
+    StatusSerializer,
+    UnitSerializer,
     UserRoleSerializer,
+    YearListSerializer,
     IssuanceRecordSerializer,
     IssuanceRecordListSerializer,
     LoginSerializer,
@@ -74,27 +85,55 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         return Response(UserSerializer(request.user).data)
 
+class HeadOfficeViewSet(viewsets.ModelViewSet):
+    queryset = HeadOffice.objects.all()
+    serializer_class = HeadOfficeSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+class CircleOfficeViewSet(viewsets.ModelViewSet):
+    queryset = CircleOffice.objects.all()
+    serializer_class = CircleOfficeSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["circleofficename", "officeaddress"]
+
+
 class DistrictOfficeViewSet(viewsets.ModelViewSet):
     queryset = DistrictOffice.objects.all()
     serializer_class = DistrictOfficeSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
     filter_backends = [filters.SearchFilter]
-    search_fields = ["name"]
+    search_fields = ["districtofficename", "officeaddress"]
 
 
 class OfficeViewSet(viewsets.ModelViewSet):
-    queryset = Office.objects.select_related("district_office").all()
+    queryset = Office.objects.select_related("districtoffice").all()
     serializer_class = OfficeSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ["district_office"]
-    search_fields = ["name"]
+    filterset_fields = ["districtoffice"]
+    search_fields = ["officename"]
+
+
+class DesignationViewSet(viewsets.ModelViewSet):
+    queryset = Designation.objects.all()
+    serializer_class = DesignationSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["designationname", "class_field"]
 
 
 class UserRoleViewSet(viewsets.ModelViewSet):
     queryset = UserRole.objects.all().order_by("id")
     serializer_class = UserRoleSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
     filter_backends = [filters.SearchFilter]
     search_fields = ["rolename"]
 
@@ -148,6 +187,73 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         records = IssuanceRecord.objects.filter(department=dept).prefetch_related("lines__item")
         serializer = IssuanceRecordSerializer(records, many=True)
         return Response(serializer.data)
+
+class StatusViewSet(viewsets.ModelViewSet):
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["statusname"]
+
+
+class MonthCycleViewSet(viewsets.ModelViewSet):
+    queryset = MonthCycle.objects.all()
+    serializer_class = MonthCycleSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["cyclename"]
+
+
+class UnitViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+class MonthListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = MonthList.objects.all()
+    serializer_class = MonthListSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+class YearListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = YearList.objects.all()
+    serializer_class = YearListSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+class ProductGroupViewSet(viewsets.ModelViewSet):
+    queryset = ProductGroup.objects.all()
+    serializer_class = ProductGroupSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["groupname"]
+
+
+class MfccompanyViewSet(viewsets.ModelViewSet):
+    queryset = Mfccompany.objects.all()
+    serializer_class = MfccompanySerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["companyname"]
+
+
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.select_related("productgroup", "mfccompany").all()
+    serializer_class = ProductSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ["productgroup", "status_id"]
+    search_fields = ["productname", "specification"]
+
 
 class IssuanceRecordViewSet(viewsets.ModelViewSet):
     queryset = IssuanceRecord.objects.select_related("department").prefetch_related("lines__item").all()

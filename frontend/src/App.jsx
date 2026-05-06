@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import LoginPage from "./components/LoginPage.jsx";
-import StockAdd from "./components/StockAdd.jsx";
+import HeadOffice from "./components/HeadOffice.jsx";
+import DistrictOffice from "./components/DistrictOffice.jsx";
+import CircleOffice from "./components/CircleOffice.jsx";
+import OfficeList from "./components/OfficeList.jsx";
+import Designation from "./components/Designation.jsx";
 import StockDistribution from "./components/StockDistribution.jsx";
 import StockRegister from "./components/StockRegister.jsx";
 import UserRegistration from "./components/UserRegistration.jsx";
+import ProductGroup from "./components/ProductGroup.jsx";
+import ProductList from "./components/ProductList.jsx";
+import MfgCompany from "./components/MfgCompany.jsx";
+import MonthCycle from "./components/MonthCycle.jsx";
+import ProductOpeningBalance from "./components/ProductOpeningBalance.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
   return (
@@ -132,6 +141,55 @@ function IconShield({ className = "h-5 w-5" }) {
   );
 }
 
+function IconBuilding({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 21V7l7-4 7 4v14" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-5h6v5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 10h2M13 10h2M9 14h2M13 14h2" />
+    </svg>
+  );
+}
+
+function IconMapPin({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7Z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
+function IconMap({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v15M15 6v15" />
+    </svg>
+  );
+}
+
+function IconBriefcase({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <rect x="2" y="8" width="20" height="13" rx="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2 13h20" />
+    </svg>
+  );
+}
+
+function IconBadge({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3a3 3 0 1 1 6 0H9Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+
 function IconHome({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
@@ -166,7 +224,21 @@ const menuGroups = [
     label: "Basic Setup",
     icon: IconLayers,
     items: [
+      { id: "head-office", label: "Head Office", icon: IconBuilding },
+      { id: "circle-office", label: "Circle Office", icon: IconMapPin },
+      { id: "district-office", label: "District Office", icon: IconMap },
+      { id: "office", label: "Office", icon: IconBriefcase },
+      { id: "designation", label: "Designation", icon: IconBadge },
+      { id: "month-cycle", label: "Month Cycle", icon: IconChart },
+    ],
+  },
+  {
+    id: "product",
+    label: "Product",
+    icon: IconBox,
+    items: [
       { id: "product-group", label: "Product Group", icon: IconFolder },
+      { id: "mfc-company", label: "Manufacture Company", icon: IconTruck },
       { id: "product-information", label: "Product Information", icon: IconClipboard },
       { id: "product-opening-balance", label: "Product Opening Balance", icon: IconBalance },
     ],
@@ -174,7 +246,7 @@ const menuGroups = [
   {
     id: "transaction",
     label: "Transaction",
-    icon: IconBox,
+    icon: IconTruck,
     items: [
       { id: "stock-register", label: "Stock Register", icon: IconBox },
       { id: "distribution", label: "Distribution", icon: IconTruck },
@@ -189,34 +261,19 @@ const menuGroups = [
       { id: "user-registration", label: "User Registration", icon: IconProfile },
       { id: "user-role", label: "User Role", icon: IconUserCog },
       { id: "user-permission", label: "User Permission", icon: IconShield },
-      { id: "login", label: "Login", icon: IconLogin },
     ],
   },
 ];
 
-function DashboardPage({ registeredUser }) {
+function DashboardPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-white/70 bg-white/85 p-8 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-        {registeredUser ? (
-          <>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">
-              Registration Successful
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-              Welcome, {registeredUser.username}
-            </h1>
-            <p className="mt-2 text-base text-slate-600">You are registered.</p>
-          </>
-        ) : (
-          <>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">Overview</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
-            <p className="mt-2 text-base text-slate-600">
-              Welcome to the store management system.
-            </p>
-          </>
-        )}
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-700">Overview</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
+        <p className="mt-2 text-base text-slate-600">
+          Welcome to the inventory management system.
+        </p>
       </section>
     </div>
   );
@@ -256,34 +313,26 @@ function PlaceholderPage({ eyebrow, title, description, stats }) {
 
 function renderContent(page, handlers) {
   switch (page) {
+    case "head-office":
+      return <HeadOffice />;
+    case "circle-office":
+      return <CircleOffice />;
+    case "district-office":
+      return <DistrictOffice />;
+    case "office":
+      return <OfficeList />;
+    case "designation":
+      return <Designation />;
+    case "month-cycle":
+      return <MonthCycle />;
     case "product-group":
-      return (
-        <PlaceholderPage
-          eyebrow="Basic Setup"
-          title="Product Group"
-          description="Create and organize product groups before item-level stock entries are added into the system."
-          stats={[
-            { label: "Groups", value: "12", detail: "Active categories mapped to the store structure." },
-            { label: "Pending", value: "03", detail: "Groups awaiting item assignment." },
-            { label: "Updated", value: "Today", detail: "Most recent setup activity recorded." },
-          ]}
-        />
-      );
+      return <ProductGroup />;
+    case "mfc-company":
+      return <MfgCompany />;
     case "product-information":
-      return <StockAdd />;
+      return <ProductList />;
     case "product-opening-balance":
-      return (
-        <PlaceholderPage
-          eyebrow="Basic Setup"
-          title="Product Opening Balance"
-          description="Define opening stock balances for the fiscal year and keep the baseline aligned with purchase and distribution records."
-          stats={[
-            { label: "Fiscal Year", value: "2026", detail: "Current opening balance session." },
-            { label: "Imported", value: "148", detail: "Items with opening quantity prepared." },
-            { label: "Variance", value: "0.00", detail: "No mismatches detected in the draft sheet." },
-          ]}
-        />
-      );
+      return <ProductOpeningBalance />;
     case "stock-register":
       return <StockRegister />;
     case "distribution":
@@ -302,11 +351,9 @@ function renderContent(page, handlers) {
         />
       );
     case "dashboard":
-      return <DashboardPage registeredUser={handlers.lastRegistered} />;
+      return <DashboardPage />;
     case "user-registration":
       return <UserRegistration onRegistered={handlers.onRegistered} />;
-    case "login":
-      return <LoginPage onLogin={handlers.onAuth} />;
     case "user-role":
       return (
         <PlaceholderPage
@@ -339,27 +386,40 @@ function renderContent(page, handlers) {
 }
 
 export default function App() {
-  const [page, setPage] = useState("distribution");
+  const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openMenus, setOpenMenus] = useState({
-    basic: true,
-    transaction: true,
-    users: true,
+    basic: false,
+    product: false,
+    transaction: false,
+    users: false,
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatar, setAvatar] = useState("");
   const [authUser, setAuthUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [lastRegistered, setLastRegistered] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("storeAuthUser");
-    const storedToken = localStorage.getItem("storeAuthToken");
-    if (storedUser && storedToken) {
-      setAuthUser(JSON.parse(storedUser));
-      setIsLoggedIn(true);
+    const storedToken = sessionStorage.getItem("storeAuthToken");
+    if (!storedToken) {
+      setAuthChecking(false);
+      return;
     }
+    fetch("/api/users/me/", {
+      headers: { Authorization: `Token ${storedToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((user) => {
+        setAuthUser(user);
+        setIsLoggedIn(true);
+      })
+      .catch(() => {
+        sessionStorage.removeItem("storeAuthToken");
+        sessionStorage.removeItem("storeAuthUser");
+      })
+      .finally(() => setAuthChecking(false));
   }, []);
 
   function toggleMenu(menuId) {
@@ -379,29 +439,24 @@ export default function App() {
   }
 
   function handleAuth(data) {
-    localStorage.setItem("storeAuthToken", data.token);
-    localStorage.setItem("storeAuthUser", JSON.stringify(data.user));
+    sessionStorage.setItem("storeAuthToken", data.token);
+    sessionStorage.setItem("storeAuthUser", JSON.stringify(data.user));
     setAuthUser(data.user);
     setIsLoggedIn(true);
-    setPage("distribution");
-  }
-
-  function handleRegistered(data) {
-    localStorage.setItem("storeAuthToken", data.token);
-    localStorage.setItem("storeAuthUser", JSON.stringify(data.user));
-    setAuthUser(data.user);
-    setIsLoggedIn(true);
-    setLastRegistered(data.user);
     setPage("dashboard");
   }
 
+  function handleRegistered() {
+    setPage("user-registration");
+    setOpenMenus((m) => ({ ...m, users: true }));
+  }
+
   function handleLogout() {
-    localStorage.removeItem("storeAuthToken");
-    localStorage.removeItem("storeAuthUser");
+    sessionStorage.removeItem("storeAuthToken");
+    sessionStorage.removeItem("storeAuthUser");
     setAuthUser(null);
     setIsLoggedIn(false);
     setProfileOpen(false);
-    setPage("login");
   }
 
   const displayName =
@@ -409,13 +464,25 @@ export default function App() {
       ? `${authUser?.first_name || ""} ${authUser?.last_name || ""}`.trim()
       : authUser?.username || "Admin User";
 
+  if (authChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <span className="h-8 w-8 animate-spin rounded-full border-4 border-slate-700 border-t-cyan-400" />
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleAuth} />;
+  }
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="flex min-h-screen">
         {sidebarOpen && (
           <aside className="hidden w-[312px] shrink-0 border-r border-slate-200/80 bg-slate-950 px-3 py-3 text-slate-100 shadow-[24px_0_80px_rgba(15,23,42,0.14)] lg:flex lg:flex-col">
             <img
-              src="/images/govLogo2.png"
+              src="/images/govLogo3.webp"
               alt="Government logo"
               className="h-[104px] w-full object-contain"
             />
@@ -423,7 +490,7 @@ export default function App() {
             <nav className="mt-6 flex-1 space-y-3 overflow-y-auto">
               <button
                 type="button"
-                onClick={() => { setPage("dashboard"); setLastRegistered(null); }}
+                onClick={() => setPage("dashboard")}
                 className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
                   page === "dashboard"
                     ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
@@ -512,7 +579,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="relative">
+              <div className="flex items-center gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -520,71 +587,65 @@ export default function App() {
                   className="hidden"
                   onChange={handleAvatarChange}
                 />
+
+                {/* User profile button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setProfileOpen((current) => !current)}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-cyan-700"
+                  >
+                    {avatar ? (
+                      <img src={avatar} alt="Profile avatar" className="h-9 w-9 rounded-xl object-cover" />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-semibold text-white">
+                        {displayName.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="hidden text-left sm:block">
+                      <span className="block text-sm font-semibold text-slate-900">{displayName}</span>
+                      <span className="block text-xs text-slate-500">Signed in</span>
+                    </span>
+                    <IconChevron open={profileOpen} />
+                  </button>
+
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-3 w-52 overflow-hidden rounded-[20px] border border-slate-200 bg-white p-2 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                      <button
+                        type="button"
+                        onClick={() => { fileInputRef.current?.click(); setProfileOpen(false); }}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                      >
+                        <IconProfile className="h-4 w-4" />
+                        Change Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+                      >
+                        <IconProfile className="h-4 w-4" />
+                        Profile
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Logout button */}
                 <button
                   type="button"
-                  onClick={() => setProfileOpen((current) => !current)}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:border-cyan-700"
+                  onClick={handleLogout}
+                  className="flex h-[46px] items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-400 hover:text-rose-600"
                 >
-                  {avatar ? (
-                    <img src={avatar} alt="Profile avatar" className="h-11 w-11 rounded-2xl object-cover" />
-                  ) : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white">
-                      DE
-                    </span>
-                  )}
-                  <span className="hidden text-left sm:block">
-                    <span className="block text-sm font-semibold text-slate-900">{displayName}</span>
-                    <span className="block text-xs text-slate-500">
-                      {isLoggedIn ? "Signed in" : "Signed out"}
-                    </span>
-                  </span>
-                  <IconChevron open={profileOpen} />
+                  <IconLogin className="h-4 w-4" />
+                  <span className="hidden sm:block">Logout</span>
                 </button>
-
-                {profileOpen && (
-                  <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_20px_60px_rgba(0,0,0,0.22)]">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fileInputRef.current?.click();
-                        setProfileOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-300"
-                    >
-                      <IconProfile className="h-4 w-4" />
-                      Change Photo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-300"
-                    >
-                      <IconProfile className="h-4 w-4" />
-                      Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isLoggedIn) {
-                          handleLogout();
-                        } else {
-                          setPage("login");
-                          setProfileOpen(false);
-                        }
-                      }}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-300"
-                    >
-                      <IconLogin className="h-4 w-4" />
-                      {isLoggedIn ? "Logout" : "Login"}
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </header>
 
           <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-[1600px]">{renderContent(page, { onAuth: handleAuth, onRegistered: handleRegistered, lastRegistered })}</div>
+            <div className="mx-auto max-w-[1600px]">{renderContent(page, { onAuth: handleAuth, onRegistered: handleRegistered })}</div>
           </main>
         </div>
       </div>

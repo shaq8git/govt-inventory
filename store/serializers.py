@@ -1,8 +1,9 @@
 from django.contrib.auth import authenticate, get_user_model
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, DistrictOffice, Office
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status
 
 User = get_user_model()
 
@@ -18,7 +19,10 @@ class UserRoleSerializer(serializers.ModelSerializer):
         fields = ["id", "rolename"]
 
 class UserSerializer(serializers.ModelSerializer):
-    
+    username = serializers.CharField(
+        max_length=150,
+        validators=[UniqueValidator(queryset=User.objects.all(), message="A user with that username already exists.")],
+    )
     userrole = UserRoleSerializer(read_only=True)
 
     userrole_id = serializers.PrimaryKeyRelatedField(
@@ -53,7 +57,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-
+    username = serializers.CharField(
+        max_length=150,
+        validators=[UniqueValidator(queryset=User.objects.all(), message="A user with that username already exists.")],
+    )
 
     userrole = serializers.PrimaryKeyRelatedField(
         queryset=UserRole.objects.all(),
@@ -106,16 +113,41 @@ class LoginSerializer(serializers.Serializer):
         attrs["user"] = user
         return attrs
 
+class HeadOfficeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HeadOffice
+        fields = ["id", "officename", "address"]
+
+
+class CircleOfficeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CircleOffice
+        fields = ["id", "circleofficename", "officeaddress", "headoffice_id", "slno"]
+
+
 class DistrictOfficeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="districtofficename", read_only=True)
+
     class Meta:
         model = DistrictOffice
-        fields = ["id", "name"]
+        fields = ["id", "name", "districtofficename", "officeaddress", "nomanp", "orderno"]
 
 
 class OfficeSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="officename", read_only=True)
+    districtoffice_name = serializers.CharField(
+        source="districtoffice.districtofficename", read_only=True, default=None
+    )
+
     class Meta:
         model = Office
-        fields = ["id", "name", "district_office"]
+        fields = ["id", "name", "officename", "officeaddress", "districtoffice_id", "districtoffice_name", "activity", "orderno"]
+
+
+class DesignationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Designation
+        fields = ["id", "designationname", "class_field", "grade_id", "nopost", "desigslno", "officerornot_id"]
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -181,3 +213,74 @@ class IssuanceRecordListSerializer(serializers.ModelSerializer):
     class Meta:
         model = IssuanceRecord
         fields = ["id", "serial_number", "date", "department", "department_name", "fiscal_year", "month", "sheet_number", "lines_count"]
+
+
+class StatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Status
+        fields = ["id", "statusname"]
+
+
+class MonthCycleSerializer(serializers.ModelSerializer):
+    month_name = serializers.CharField(source="month.monthname", read_only=True, default=None)
+    year_number = serializers.IntegerField(source="year.yearnumber", read_only=True, default=None)
+    days = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MonthCycle
+        fields = [
+            "id", "cyclename", "month", "month_name", "year", "year_number",
+            "startdate", "enddate", "days", "slno",
+        ]
+
+    def get_days(self, obj):
+        if obj.startdate and obj.enddate:
+            return (obj.enddate - obj.startdate).days + 1
+        return None
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Unit
+        fields = ["id", "unitname"]
+
+
+class MonthListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MonthList
+        fields = ["id", "monthno", "monthname"]
+
+
+class YearListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = YearList
+        fields = ["id", "yearnumber"]
+
+
+class ProductGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductGroup
+        fields = ["id", "groupcode", "groupname", "slno"]
+        read_only_fields = ["groupcode"]
+
+
+class MfccompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Mfccompany
+        fields = ["id", "companyname", "address", "contactno", "status_id"]
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    productgroup_name = serializers.CharField(source="productgroup.groupname", read_only=True)
+    mfccompany_name = serializers.CharField(source="mfccompany.companyname", read_only=True, default=None)
+    status_name = serializers.CharField(source="status.statusname", read_only=True, default=None)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "prodcode", "productname", "productgroup", "productgroup_name",
+            "mfccompany", "mfccompany_name", "unit",
+            "openqty", "openqtyyear_id", "currentqty", "currentqtyyear_id",
+            "openflag", "mrp", "status", "status_name",
+        ]
+        read_only_fields = ["prodcode"]
