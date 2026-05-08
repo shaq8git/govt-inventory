@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem
 from .serializers import (
     CategorySerializer,
     CircleOfficeSerializer,
@@ -30,6 +30,11 @@ from .serializers import (
     StockItemSerializer,
     UserRegistrationSerializer,
     UserSerializer,
+    VoucherCodeSerializer,
+    SupplierSerializer,
+    PurchaseHeadSerializer,
+    PurchaseHeadListSerializer,
+    PurchaseItemCreateSerializer,
 )
 
 User = get_user_model()
@@ -253,6 +258,49 @@ class ProductViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ["productgroup", "status_id"]
     search_fields = ["productname", "specification"]
+
+
+class VoucherCodeViewSet(viewsets.ModelViewSet):
+    queryset = VoucherCode.objects.all()
+    serializer_class = VoucherCodeSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["shortname", "description"]
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    queryset = Supplier.objects.all()
+    serializer_class = SupplierSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["supname", "contact", "address"]
+
+
+class PurchaseItemViewSet(viewsets.ModelViewSet):
+    queryset = PurchaseItem.objects.select_related("product", "purchasehead").all()
+    serializer_class = PurchaseItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["purchasehead"]
+
+
+class PurchaseHeadViewSet(viewsets.ModelViewSet):
+    queryset = PurchaseHead.objects.select_related(
+        "supplier", "vouchercode", "monthlist", "yearlist"
+    ).prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "supplier__supname"]
+    filterset_fields = ["supplier", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PurchaseHeadListSerializer
+        return PurchaseHeadSerializer
 
 
 class IssuanceRecordViewSet(viewsets.ModelViewSet):

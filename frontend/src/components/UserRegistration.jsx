@@ -485,7 +485,7 @@ export default function UserRegistration({ onRegistered }) {
     }
     setEditSaving(true);
     setEditFormError("");
-    const token = localStorage.getItem("storeAuthToken");
+    const token = sessionStorage.getItem("storeAuthToken");
     try {
       const payload = {
         username: editForm.username.trim(),

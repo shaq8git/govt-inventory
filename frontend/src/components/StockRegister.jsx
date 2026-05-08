@@ -1,176 +1,436 @@
-import { useMemo, useState } from "react";
-import { stockRegisterData } from "../data/stockRegisterData";
+import { useEffect, useRef, useState } from "react";
 
-const numberFormat = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 2,
+const API = "/api";
+const token = () => sessionStorage.getItem("storeAuthToken");
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  Authorization: `Token ${token()}`,
 });
 
-function formatQuantity(value) {
-  return value ? numberFormat.format(value) : "";
-}
+const emptyRow = (tempId) => ({
+  tempId,
+  product_id: "",
+  productname: "",
+  prodcode: "",
+  quantity: "",
+  purrate: "",
+  salesrate: "",
+  mrp: "",
+  saved: false,
+  itemId: null,
+  saving: false,
+  error: "",
+});
 
 export default function StockRegister() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
+  const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [headForm, setHeadForm] = useState({ date: "", supplier_id: "", remark: "" });
+  const [headId, setHeadId] = useState(null);
+  const [rows, setRows] = useState([emptyRow(1)]);
+  const nextTempId = useRef(2);
 
-  const categories = useMemo(() => {
-    return ["All", ...new Set(stockRegisterData.items.map((item) => item.category))];
+  useEffect(() => {
+    fetch(`${API}/suppliers/`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => setSuppliers(Array.isArray(d) ? d : (d.results ?? [])));
+    fetch(`${API}/products/?page_size=10000`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => setProducts(Array.isArray(d) ? d : (d.results ?? [])));
   }, []);
 
-  const filteredItems = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+  function updateHead(field, value) {
+    setHeadForm((prev) => ({ ...prev, [field]: value }));
+  }
 
-    return stockRegisterData.items.filter((item) => {
-      const matchesCategory = category === "All" || item.category === category;
-      const matchesQuery =
-        !normalizedQuery ||
-        item.name.toLowerCase().includes(normalizedQuery) ||
-        String(item.itemNumber).includes(normalizedQuery);
+  function updateRow(tempId, field, value) {
+    setRows((prev) =>
+      prev.map((r) => (r.tempId === tempId ? { ...r, [field]: value, error: "" } : r))
+    );
+  }
 
-      return matchesCategory && matchesQuery;
-    });
-  }, [category, query]);
+  function handleProductChange(tempId, productId) {
+    const prod = products.find((p) => String(p.id) === String(productId));
+    if (!prod) {
+      updateRow(tempId, "product_id", productId);
+      return;
+    }
+    setRows((prev) =>
+      prev.map((r) =>
+        r.tempId === tempId
+          ? {
+              ...r,
+              product_id: productId,
+              productname: prod.productname,
+              prodcode: prod.prodcode,
+              purrate: prod.purchaserate ?? "",
+              salesrate: prod.salesrate ?? "",
+              mrp: prod.mrp ?? "",
+              quantity: r.quantity,
+              error: "",
+            }
+          : r
+      )
+    );
+  }
 
-  const monthlyTotals = useMemo(() => {
-    return stockRegisterData.months.reduce((totals, month) => {
-      totals[month] = filteredItems.reduce(
-        (sum, item) => sum + (item.monthlyAllotment[month] || 0),
-        0,
+  async function handleSaveRow(tempId) {
+    const row = rows.find((r) => r.tempId === tempId);
+    if (!row) return;
+
+    if (!row.product_id) {
+      setRows((prev) =>
+        prev.map((r) => (r.tempId === tempId ? { ...r, error: "Select a product." } : r))
       );
-      return totals;
-    }, {});
-  }, [filteredItems]);
+      return;
+    }
+    if (!row.quantity || Number(row.quantity) <= 0) {
+      setRows((prev) =>
+        prev.map((r) => (r.tempId === tempId ? { ...r, error: "Enter a valid quantity." } : r))
+      );
+      return;
+    }
 
-  const grandTotal = filteredItems.reduce((sum, item) => sum + item.total, 0);
+    setRows((prev) => prev.map((r) => (r.tempId === tempId ? { ...r, saving: true, error: "" } : r)));
+
+    let currentHeadId = headId;
+
+    if (!currentHeadId) {
+      if (!headForm.supplier_id) {
+        setRows((prev) =>
+          prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Select a supplier in the head section." } : r))
+        );
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/purchase-heads/`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            supplier: headForm.supplier_id,
+            invoicedate: headForm.date || null,
+            remark: headForm.remark,
+            items: [],
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(JSON.stringify(err));
+        }
+        const data = await res.json();
+        currentHeadId = data.id;
+        setHeadId(data.id);
+      } catch (e) {
+        setRows((prev) =>
+          prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Failed to create purchase head." } : r))
+        );
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`${API}/purchase-items/`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          purchasehead: currentHeadId,
+          product: Number(row.product_id),
+          quantity: Number(row.quantity),
+          purrate: Number(row.purrate) || 0,
+          salesrate: Number(row.salesrate) || 0,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(JSON.stringify(err));
+      }
+      const data = await res.json();
+      const newId = nextTempId.current++;
+      setRows((prev) => [
+        ...prev.map((r) =>
+          r.tempId === tempId ? { ...r, saved: true, saving: false, itemId: data.id } : r
+        ),
+        emptyRow(newId),
+      ]);
+      setHeadId(null);
+      setHeadForm({ date: "", supplier_id: "", remark: "" });
+    } catch (e) {
+      setRows((prev) =>
+        prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Failed to save item." } : r))
+      );
+    }
+  }
+
+  async function handleDeleteRow(tempId) {
+    const row = rows.find((r) => r.tempId === tempId);
+    if (!row) return;
+
+    if (!row.saved || !row.itemId) {
+      setRows((prev) => prev.filter((r) => r.tempId !== tempId));
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/purchase-items/${row.itemId}/`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok && res.status !== 204) throw new Error("Delete failed");
+      setRows((prev) => {
+        const remaining = prev.filter((r) => r.tempId !== tempId);
+        if (remaining.length === 0) {
+          const newId = nextTempId.current++;
+          return [emptyRow(newId)];
+        }
+        return remaining;
+      });
+    } catch {
+      setRows((prev) =>
+        prev.map((r) => (r.tempId === tempId ? { ...r, error: "Delete failed." } : r))
+      );
+    }
+  }
+
+  const headLocked = headId !== null;
 
   return (
     <main className="min-h-screen bg-[#f4f6f8] text-slate-900">
+      {/* Page header */}
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-                Fiscal Year {stockRegisterData.fiscalYear}
-              </p>
-              <h1 className="mt-1 text-2xl font-semibold text-slate-950 sm:text-3xl">
-                Monthly Stock Allotment Register
-              </h1>
-            </div>
-            <div className="text-sm text-slate-600">
-              {filteredItems.length} items · {numberFormat.format(grandTotal)} total allotted
-            </div>
-          </div>
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-semibold text-slate-950">Stock Purchase Entry</h1>
+          <p className="mt-1 text-sm text-slate-500">Record incoming stock purchases</p>
+        </div>
+      </section>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
-            <label className="block">
-              <span className="sr-only">Search items</span>
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        {/* Head section */}
+        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col items-center gap-3 px-5 py-5">
+            <div className="w-64">
+              <label className="mb-1 block text-sm font-semibold text-slate-700">Date</label>
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                placeholder="Search by item name or number"
+                type="date"
+                value={headForm.date}
+                onChange={(e) => updateHead("date", e.target.value)}
+                disabled={headLocked}
+                className="h-9 w-full rounded border-2 border-slate-600 bg-white px-2 text-sm text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
               />
-            </label>
-            <label className="block">
-              <span className="sr-only">Category</span>
+            </div>
+            <div className="w-64">
+              <label className="mb-1 block text-sm font-semibold text-slate-700">
+                Supplier <span className="text-red-500">*</span>
+              </label>
               <select
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                value={headForm.supplier_id}
+                onChange={(e) => updateHead("supplier_id", e.target.value)}
+                disabled={headLocked}
+                className="h-9 w-full rounded border-2 border-slate-600 bg-white px-2 text-sm text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
               >
-                {categories.map((option) => (
-                  <option key={option} value={option}>
-                    {option === "All" ? "All categories" : option}
+                <option value="">-- Select Supplier --</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.supname}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
+            <div className="w-64">
+              <label className="mb-1 block text-sm font-semibold text-slate-700">Remark</label>
+              <input
+                type="text"
+                value={headForm.remark}
+                onChange={(e) => updateHead("remark", e.target.value)}
+                disabled={headLocked}
+                placeholder="Optional remark"
+                className="h-9 w-full rounded border-2 border-slate-600 bg-white px-2 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-slate-800 focus:ring-1 focus:ring-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
+              />
+            </div>
           </div>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
+        {/* Items section */}
+        <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+          <div className="overflow-x-auto">
             <table className="min-w-full border-separate border-spacing-0 text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-100 text-left text-xs font-semibold uppercase text-slate-600">
+              <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
                 <tr>
-                  <th className="sticky left-0 z-20 w-16 border-b border-slate-200 bg-slate-100 px-3 py-3">
-                    No.
-                  </th>
-                  <th className="sticky left-16 z-20 min-w-64 border-b border-slate-200 bg-slate-100 px-3 py-3">
-                    Item
-                  </th>
-                  <th className="min-w-32 border-b border-slate-200 px-3 py-3">
-                    Category
-                  </th>
-                  <th className="w-24 border-b border-slate-200 px-3 py-3">
-                    Unit
-                  </th>
-                  {stockRegisterData.months.map((month) => (
-                    <th
-                      key={month}
-                      className="w-24 border-b border-slate-200 px-3 py-3 text-right"
-                    >
-                      {month}
-                    </th>
-                  ))}
-                  <th className="w-28 border-b border-slate-200 px-3 py-3 text-right">
-                    Total
-                  </th>
+                  <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
+                  <th className="border-b border-slate-700 px-3 py-3 text-left">Product Code</th>
+                  <th className="min-w-56 border-b border-slate-700 px-3 py-3 text-left">Product Name</th>
+                  <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Quantity</th>
+                  <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Pur. Rate</th>
+                  <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Sales Rate</th>
+                  <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">MRP</th>
+                  <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => (
-                  <tr key={item.itemNumber} className="odd:bg-white even:bg-slate-50">
-                    <td className="sticky left-0 z-10 border-b border-slate-100 bg-inherit px-3 py-3 font-medium text-slate-600">
-                      {item.itemNumber}
+                {rows.map((row, idx) => {
+                  const isDark = idx % 2 === 0;
+                  const rowCls = row.saved
+                    ? "bg-green-300"
+                    : isDark
+                    ? "bg-gray-400"
+                    : "bg-white";
+                  const cellText = "text-slate-950";
+                  const borderCls = isDark || row.saved ? "border-slate-500" : "border-slate-200";
+                  return (
+                  <tr key={row.tempId} className={`${rowCls} border-b ${borderCls} last:border-0`}>
+                    <td className={`px-3 py-2 text-center text-xs font-semibold ${cellText}`}>
+                      {idx + 1}
                     </td>
-                    <td className="sticky left-16 z-10 border-b border-slate-100 bg-inherit px-3 py-3 font-medium text-slate-950">
-                      {item.name}
+                    {/* Product code dropdown */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="font-mono text-slate-950">{row.prodcode}</span>
+                      ) : (
+                        <select
+                          value={row.product_id}
+                          onChange={(e) => handleProductChange(row.tempId, e.target.value)}
+                          className="h-9 w-32 rounded border border-slate-600 bg-slate-800 px-2 text-sm text-white outline-none focus:border-cyan-400"
+                        >
+                          <option value="">-- Code --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.prodcode}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
-                    <td className="border-b border-slate-100 px-3 py-3 text-slate-600">
-                      {item.category}
+                    {/* Product name dropdown */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="font-medium text-slate-950">{row.productname}</span>
+                      ) : (
+                        <select
+                          value={row.product_id}
+                          onChange={(e) => handleProductChange(row.tempId, e.target.value)}
+                          className="h-9 w-full rounded border border-slate-600 bg-slate-800 px-2 text-sm text-white outline-none focus:border-cyan-400"
+                        >
+                          <option value="">-- Select Product --</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.productname}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
-                    <td className="border-b border-slate-100 px-3 py-3 text-slate-600">
-                      {item.unit}
+                    {/* Quantity */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="block text-center tabular-nums text-slate-950">{row.quantity}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          min="0"
+                          value={row.quantity}
+                          onChange={(e) => updateRow(row.tempId, "quantity", e.target.value)}
+                          className="h-9 w-full rounded border border-slate-600 bg-slate-800 px-2 text-center text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+                          placeholder="0"
+                        />
+                      )}
                     </td>
-                    {stockRegisterData.months.map((month) => (
-                      <td
-                        key={month}
-                        className="border-b border-slate-100 px-3 py-3 text-right tabular-nums"
-                      >
-                        {formatQuantity(item.monthlyAllotment[month])}
-                      </td>
-                    ))}
-                    <td className="border-b border-slate-100 px-3 py-3 text-right font-semibold tabular-nums text-slate-950">
-                      {formatQuantity(item.total)}
+                    {/* Pur rate */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="block text-center tabular-nums text-slate-950">{row.purrate}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          min="0"
+                          value={row.purrate}
+                          onChange={(e) => updateRow(row.tempId, "purrate", e.target.value)}
+                          className="h-9 w-full rounded border border-slate-600 bg-slate-800 px-2 text-center text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+                          placeholder="0.00"
+                        />
+                      )}
+                    </td>
+                    {/* Sales rate */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="block text-center tabular-nums text-slate-950">{row.salesrate}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          min="0"
+                          value={row.salesrate}
+                          onChange={(e) => updateRow(row.tempId, "salesrate", e.target.value)}
+                          className="h-9 w-full rounded border border-slate-600 bg-slate-800 px-2 text-center text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+                          placeholder="0.00"
+                        />
+                      )}
+                    </td>
+                    {/* MRP */}
+                    <td className="px-3 py-2">
+                      {row.saved ? (
+                        <span className="block text-center tabular-nums text-slate-950">{row.mrp}</span>
+                      ) : (
+                        <input
+                          readOnly
+                          value={row.mrp}
+                          className="h-9 w-full rounded border border-slate-600 bg-slate-800 px-2 text-center text-sm text-slate-400 cursor-default"
+                          placeholder="0.00"
+                        />
+                      )}
+                    </td>
+                    {/* Action */}
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-center gap-2">
+                        {row.saved ? (
+                          <button
+                            onClick={() => handleDeleteRow(row.tempId)}
+                            title="Delete row"
+                            className="flex h-8 w-8 items-center justify-center rounded border border-red-300 bg-red-50 text-red-600 transition hover:bg-red-100 hover:border-red-400"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSaveRow(row.tempId)}
+                            disabled={row.saving}
+                            title="Save row"
+                            className="flex h-8 w-8 items-center justify-center rounded border border-cyan-500 bg-cyan-900/50 text-cyan-300 transition hover:bg-cyan-700 disabled:opacity-50"
+                          >
+                            {row.saving ? (
+                              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {row.error && (
+                        <p className="mt-1 text-center text-xs text-red-400">{row.error}</p>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
-              <tfoot className="sticky bottom-0 bg-slate-900 text-sm font-semibold text-white">
-                <tr>
-                  <td className="sticky left-0 z-20 bg-slate-900 px-3 py-3" />
-                  <td className="sticky left-16 z-20 bg-slate-900 px-3 py-3">
-                    Visible total
-                  </td>
-                  <td className="px-3 py-3" />
-                  <td className="px-3 py-3" />
-                  {stockRegisterData.months.map((month) => (
-                    <td key={month} className="px-3 py-3 text-right tabular-nums">
-                      {formatQuantity(monthlyTotals[month])}
-                    </td>
-                  ))}
-                  <td className="px-3 py-3 text-right tabular-nums">
-                    {formatQuantity(grandTotal)}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
+          {rows.length === 0 && (
+            <p className="py-8 text-center text-sm text-slate-400">No items yet. Fill in the form above and press + to add.</p>
+          )}
         </div>
-      </section>
+
+        {headId && (
+          <p className="text-right text-xs text-slate-500">
+            Purchase Head ID: <span className="font-mono font-medium text-slate-700">{headId}</span>
+          </p>
+        )}
+      </div>
     </main>
   );
 }

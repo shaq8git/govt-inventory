@@ -20,6 +20,10 @@ from .views import (
     UserRoleViewSet,
     YearListViewSet,
     UserViewSet,
+    VoucherCodeViewSet,
+    SupplierViewSet,
+    PurchaseHeadViewSet,
+    PurchaseItemViewSet,
 )
 
 router = DefaultRouter()
@@ -42,5 +46,9 @@ router.register(r"year-list", YearListViewSet)
 router.register(r"product-groups", ProductGroupViewSet)
 router.register(r"mfc-companies", MfccompanyViewSet)
 router.register(r"products", ProductViewSet)
+router.register(r"voucher-codes", VoucherCodeViewSet)
+router.register(r"suppliers", SupplierViewSet)
+router.register(r"purchase-heads", PurchaseHeadViewSet)
+router.register(r"purchase-items", PurchaseItemViewSet)
 
 urlpatterns = router.urls

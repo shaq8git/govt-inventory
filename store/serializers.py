@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem
 
 User = get_user_model()
 
@@ -281,6 +281,138 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "prodcode", "productname", "productgroup", "productgroup_name",
             "mfccompany", "mfccompany_name", "unit",
             "openqty", "openqtyyear_id", "currentqty", "currentqtyyear_id",
-            "openflag", "mrp", "status", "status_name",
+            "openflag", "purchaserate", "salesrate", "mrp", "status", "status_name",
         ]
         read_only_fields = ["prodcode"]
+
+
+class VoucherCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VoucherCode
+        fields = ["id", "shortname", "description"]
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ["id", "supname", "contact", "address", "shipingadr", "created_at", "updated_at"]
+
+
+class PurchaseItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+    opnbalance = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    clbalance = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+
+    class Meta:
+        model = PurchaseItem
+        fields = [
+            "id", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "purprice", "salesrate",
+        ]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        if product:
+            qty = attrs.get("quantity", 0)
+            if "opnbalance" not in attrs:
+                attrs["opnbalance"] = product.currentqty
+            if "clbalance" not in attrs:
+                attrs["clbalance"] = product.currentqty + qty
+            if "purrate" not in attrs:
+                attrs["purrate"] = product.purchaserate
+            if "salesrate" not in attrs:
+                attrs["salesrate"] = product.salesrate
+        return attrs
+
+
+class PurchaseItemCreateSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = PurchaseItem
+        fields = [
+            "id", "purchasehead", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "purprice", "salesrate",
+        ]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty + qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("salesrate", product.salesrate)
+        purrate = attrs.get("purrate", 0)
+        attrs["purprice"] = qty * purrate
+        return attrs
+
+
+class PurchaseHeadSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    month_name = serializers.CharField(source="monthlist.monthname", read_only=True, default=None)
+    year_number = serializers.IntegerField(source="yearlist.yearnumber", read_only=True, default=None)
+    items = PurchaseItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = PurchaseHead
+        fields = [
+            "id", "invoiceno", "invoicedate", "remark",
+            "supplier", "supplier_name",
+            "vouchercode", "vouchercode_short",
+            "monthlist", "month_name", "yearlist", "year_number",
+            "created_at", "updated_at", "items",
+        ]
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = PurchaseHead.objects.create(**validated_data)
+        for item_data in items_data:
+            product = item_data.get("product")
+            if product:
+                qty = item_data.get("quantity", 0)
+                item_data.setdefault("opnbalance", product.currentqty)
+                item_data.setdefault("clbalance", product.currentqty + qty)
+                item_data.setdefault("purrate", product.purchaserate)
+                item_data.setdefault("salesrate", product.salesrate)
+            PurchaseItem.objects.create(purchasehead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                product = item_data.get("product")
+                if product:
+                    qty = item_data.get("quantity", 0)
+                    item_data.setdefault("opnbalance", product.currentqty)
+                    item_data.setdefault("clbalance", product.currentqty + qty)
+                    item_data.setdefault("purrate", product.purchaserate)
+                    item_data.setdefault("salesrate", product.salesrate)
+                PurchaseItem.objects.create(purchasehead=instance, **item_data)
+        return instance
+
+
+class PurchaseHeadListSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = PurchaseHead
+        fields = [
+            "id", "invoiceno", "invoicedate", "remark",
+            "supplier", "supplier_name",
+            "vouchercode", "vouchercode_short",
+            "items_count", "created_at",
+        ]

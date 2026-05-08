@@ -13,6 +13,7 @@ import ProductList from "./components/ProductList.jsx";
 import MfgCompany from "./components/MfgCompany.jsx";
 import MonthCycle from "./components/MonthCycle.jsx";
 import ProductOpeningBalance from "./components/ProductOpeningBalance.jsx";
+import Supplier from "./components/Supplier.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
   return (
@@ -241,6 +242,7 @@ const menuGroups = [
       { id: "mfc-company", label: "Manufacture Company", icon: IconTruck },
       { id: "product-information", label: "Product Information", icon: IconClipboard },
       { id: "product-opening-balance", label: "Product Opening Balance", icon: IconBalance },
+      { id: "supplier", label: "Supplier", icon: IconBriefcase },
     ],
   },
   {
@@ -333,6 +335,8 @@ function renderContent(page, handlers) {
       return <ProductList />;
     case "product-opening-balance":
       return <ProductOpeningBalance />;
+    case "supplier":
+      return <Supplier />;
     case "stock-register":
       return <StockRegister />;
     case "distribution":

@@ -379,3 +379,121 @@ class IssuanceLine(models.Model):
 
     def __str__(self):
         return f"{self.record} → {self.item.name} × {self.quantity}"
+
+
+class VoucherCode(models.Model):
+    shortname = models.CharField(max_length=2, blank=True, null=True)
+    description = models.CharField(max_length=25, blank=True, null=True)
+
+    class Meta:
+        db_table = "vouchercode"
+        ordering = ["shortname"]
+
+    def __str__(self):
+        return f"{self.shortname} - {self.description or ''}"
+
+
+class Supplier(models.Model):
+    supname = models.CharField(max_length=50, blank=True, null=True)
+    contact = models.CharField(max_length=50, blank=True, null=True)
+    address = models.CharField(max_length=150, blank=True, null=True)
+    shipingadr = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "supplier"
+        ordering = ["supname"]
+
+    def __str__(self):
+        return self.supname or ""
+
+
+class PurchaseHead(models.Model):
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="purchase_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="purchase_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="purchase_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="purchase_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "purchasehead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            from datetime import date as _date
+            today = _date.today()
+            prefix = f"PUR-{today.strftime('%Y%m%d')}-"
+            last = (
+                PurchaseHead.objects.filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno").first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.invoiceno.split("-")[-1]) + 1
+                except ValueError:
+                    seq = 1
+            self.invoiceno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class PurchaseItem(models.Model):
+    purchasehead = models.ForeignKey(
+        PurchaseHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="purchase_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    salesrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "purchaseitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") + self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") - self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.purchasehead.invoiceno} — {self.product.productname}"
