@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem
 
 User = get_user_model()
 
@@ -352,6 +352,24 @@ class PurchaseItemCreateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class PurchaseReportSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.CharField(source="product.prodcode", read_only=True)
+    product_group = serializers.CharField(source="product.productgroup.groupname", read_only=True)
+    invoiceno = serializers.CharField(source="purchasehead.invoiceno", read_only=True)
+    invoicedate = serializers.DateField(source="purchasehead.invoicedate", read_only=True)
+    supplier_name = serializers.CharField(source="purchasehead.supplier.supname", read_only=True)
+    remark = serializers.CharField(source="purchasehead.remark", read_only=True, default="")
+
+    class Meta:
+        model = PurchaseItem
+        fields = [
+            "id", "invoiceno", "invoicedate", "supplier_name",
+            "product", "product_name", "product_code", "product_group",
+            "quantity", "purrate", "purprice", "salesrate", "remark",
+        ]
+
+
 class PurchaseHeadSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
     vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
@@ -403,6 +421,124 @@ class PurchaseHeadSerializer(serializers.ModelSerializer):
         return instance
 
 
+class DeskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Desk
+        fields = ["id", "deskname", "location"]
+
+
+class PurRetItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = PurRetItem
+        fields = [
+            "id", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "purprice", "salesrate",
+        ]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty - qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("salesrate", product.salesrate)
+        purrate = attrs.get("purrate", 0)
+        attrs["purprice"] = qty * purrate
+        return attrs
+
+
+class PurRetItemCreateSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = PurRetItem
+        fields = [
+            "id", "purrethead", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "purprice", "salesrate",
+        ]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty - qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("salesrate", product.salesrate)
+        purrate = attrs.get("purrate", 0)
+        attrs["purprice"] = qty * purrate
+        return attrs
+
+
+class PurRetHeadSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = PurRetItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = PurRetHead
+        fields = [
+            "id", "invoiceno", "purinvoiceno", "invoicedate", "remark",
+            "supplier", "supplier_name",
+            "vouchercode", "vouchercode_short",
+            "monthlist", "yearlist",
+            "created_at", "updated_at", "items",
+        ]
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = PurRetHead.objects.create(**validated_data)
+        for item_data in items_data:
+            product = item_data.get("product")
+            if product:
+                qty = item_data.get("quantity", 0)
+                item_data.setdefault("opnbalance", product.currentqty)
+                item_data.setdefault("clbalance", product.currentqty - qty)
+                item_data.setdefault("purrate", product.purchaserate)
+                item_data.setdefault("salesrate", product.salesrate)
+            PurRetItem.objects.create(purrethead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                product = item_data.get("product")
+                if product:
+                    qty = item_data.get("quantity", 0)
+                    item_data.setdefault("opnbalance", product.currentqty)
+                    item_data.setdefault("clbalance", product.currentqty - qty)
+                    item_data.setdefault("purrate", product.purchaserate)
+                    item_data.setdefault("salesrate", product.salesrate)
+                PurRetItem.objects.create(purrethead=instance, **item_data)
+        return instance
+
+
+class PurRetHeadListSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = PurRetHead
+        fields = [
+            "id", "invoiceno", "purinvoiceno", "invoicedate", "remark",
+            "supplier", "supplier_name",
+            "items_count", "created_at",
+        ]
+
+
 class PurchaseHeadListSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source="supplier.supname", read_only=True)
     vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
@@ -414,5 +550,411 @@ class PurchaseHeadListSerializer(serializers.ModelSerializer):
             "id", "invoiceno", "invoicedate", "remark",
             "supplier", "supplier_name",
             "vouchercode", "vouchercode_short",
+            "items_count", "created_at",
+        ]
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+    desk_name = serializers.CharField(source="desk.deskname", read_only=True, default=None)
+
+    class Meta:
+        model = Customer
+        fields = ["id", "costname", "desk", "desk_name", "contact", "address", "shipingadr", "created_at", "updated_at"]
+
+
+# ── Sales ─────────────────────────────────────────────────────────────────────
+
+class SalesItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = SalesItem
+        fields = ["id", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "salesrate", "salesprice"]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty - qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("salesrate", product.salesrate)
+        salesrate = attrs.get("salesrate", 0)
+        attrs["salesprice"] = qty * salesrate
+        return attrs
+
+
+class SalesItemCreateSerializer(SalesItemSerializer):
+    class Meta(SalesItemSerializer.Meta):
+        fields = ["id", "saleshead", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "salesrate", "salesprice"]
+
+
+class SalesHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = SalesItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SalesHead
+        fields = ["id", "invoiceno", "invoicedate", "remark", "customer", "customer_name", "vouchercode", "vouchercode_short", "monthlist", "yearlist", "created_at", "updated_at", "items"]
+
+    def _set_item_defaults(self, item_data):
+        product = item_data.get("product")
+        qty = item_data.get("quantity", 0)
+        if product:
+            item_data.setdefault("opnbalance", product.currentqty)
+            item_data.setdefault("clbalance", product.currentqty - qty)
+            item_data.setdefault("purrate", product.purchaserate)
+            item_data.setdefault("salesrate", product.salesrate)
+            item_data.setdefault("salesprice", qty * item_data.get("salesrate", product.salesrate))
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = SalesHead.objects.create(**validated_data)
+        for item_data in items_data:
+            self._set_item_defaults(item_data)
+            SalesItem.objects.create(saleshead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                self._set_item_defaults(item_data)
+                SalesItem.objects.create(saleshead=instance, **item_data)
+        return instance
+
+
+class SalesHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = SalesHead
+        fields = ["id", "invoiceno", "invoicedate", "remark", "customer", "customer_name", "items_count", "created_at"]
+
+
+# ── Sales Return ──────────────────────────────────────────────────────────────
+
+class SlRetItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = SlRetItem
+        fields = ["id", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "salesrate", "salesprice"]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty + qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("salesrate", product.salesrate)
+        salesrate = attrs.get("salesrate", 0)
+        attrs["salesprice"] = qty * salesrate
+        return attrs
+
+
+class SlRetItemCreateSerializer(SlRetItemSerializer):
+    class Meta(SlRetItemSerializer.Meta):
+        fields = ["id", "slrethead", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "salesrate", "salesprice"]
+
+
+class SlRetHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = SlRetItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SlRetHead
+        fields = ["id", "invoiceno", "saleinvoiceno", "invoicedate", "remark", "customer", "customer_name", "vouchercode", "vouchercode_short", "monthlist", "yearlist", "created_at", "updated_at", "items"]
+
+    def _set_item_defaults(self, item_data):
+        product = item_data.get("product")
+        qty = item_data.get("quantity", 0)
+        if product:
+            item_data.setdefault("opnbalance", product.currentqty)
+            item_data.setdefault("clbalance", product.currentqty + qty)
+            item_data.setdefault("purrate", product.purchaserate)
+            item_data.setdefault("salesrate", product.salesrate)
+            item_data.setdefault("salesprice", qty * item_data.get("salesrate", product.salesrate))
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = SlRetHead.objects.create(**validated_data)
+        for item_data in items_data:
+            self._set_item_defaults(item_data)
+            SlRetItem.objects.create(slrethead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                self._set_item_defaults(item_data)
+                SlRetItem.objects.create(slrethead=instance, **item_data)
+        return instance
+
+
+class SlRetHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = SlRetHead
+        fields = ["id", "invoiceno", "saleinvoiceno", "invoicedate", "remark", "customer", "customer_name", "items_count", "created_at"]
+
+
+# ── Replace ───────────────────────────────────────────────────────────────────
+
+class ReplaceItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = ReplaceItem
+        fields = ["id", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "replacerate", "replaceprice"]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty - qty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("replacerate", product.salesrate)
+        replacerate = attrs.get("replacerate", 0)
+        attrs["replaceprice"] = qty * replacerate
+        return attrs
+
+
+class ReplaceItemCreateSerializer(ReplaceItemSerializer):
+    class Meta(ReplaceItemSerializer.Meta):
+        fields = ["id", "replacehead", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "replacerate", "replaceprice"]
+
+
+class ReplaceHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = ReplaceItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ReplaceHead
+        fields = ["id", "invoiceno", "saleinvoiceno", "invoicedate", "remark", "customer", "customer_name", "vouchercode", "vouchercode_short", "monthlist", "yearlist", "created_at", "updated_at", "items"]
+
+    def _set_item_defaults(self, item_data):
+        product = item_data.get("product")
+        qty = item_data.get("quantity", 0)
+        if product:
+            item_data.setdefault("opnbalance", product.currentqty)
+            item_data.setdefault("clbalance", product.currentqty - qty)
+            item_data.setdefault("purrate", product.purchaserate)
+            item_data.setdefault("replacerate", product.salesrate)
+            item_data.setdefault("replaceprice", qty * item_data.get("replacerate", product.salesrate))
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = ReplaceHead.objects.create(**validated_data)
+        for item_data in items_data:
+            self._set_item_defaults(item_data)
+            ReplaceItem.objects.create(replacehead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                self._set_item_defaults(item_data)
+                ReplaceItem.objects.create(replacehead=instance, **item_data)
+        return instance
+
+
+class ReplaceHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = ReplaceHead
+        fields = ["id", "invoiceno", "saleinvoiceno", "invoicedate", "remark", "customer", "customer_name", "items_count", "created_at"]
+
+
+# ── Transfer ──────────────────────────────────────────────────────────────────
+
+class TransferItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = TransferItem
+        fields = ["id", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "transrate", "transprice"]
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        qty = attrs.get("quantity", 0)
+        if product:
+            attrs.setdefault("opnbalance", product.currentqty)
+            attrs.setdefault("clbalance", product.currentqty)
+            attrs.setdefault("purrate", product.purchaserate)
+            attrs.setdefault("transrate", product.salesrate)
+        transrate = attrs.get("transrate", 0)
+        attrs["transprice"] = qty * transrate
+        return attrs
+
+
+class TransferItemCreateSerializer(TransferItemSerializer):
+    class Meta(TransferItemSerializer.Meta):
+        fields = ["id", "transferhead", "product", "product_name", "product_code", "quantity", "opnbalance", "clbalance", "purrate", "transrate", "transprice"]
+
+
+class TransferHeadSerializer(serializers.ModelSerializer):
+    fromcustomer_name = serializers.CharField(source="fromcustomer.costname", read_only=True)
+    tocustomer_name = serializers.CharField(source="tocustomer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = TransferItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = TransferHead
+        fields = ["id", "invoiceno", "invoicedate", "remark", "fromcustomer", "fromcustomer_name", "tocustomer", "tocustomer_name", "vouchercode", "vouchercode_short", "monthlist", "yearlist", "created_at", "updated_at", "items"]
+
+    def _set_item_defaults(self, item_data):
+        product = item_data.get("product")
+        qty = item_data.get("quantity", 0)
+        if product:
+            item_data.setdefault("opnbalance", product.currentqty)
+            item_data.setdefault("clbalance", product.currentqty)
+            item_data.setdefault("purrate", product.purchaserate)
+            item_data.setdefault("transrate", product.salesrate)
+            item_data.setdefault("transprice", qty * item_data.get("transrate", product.salesrate))
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = TransferHead.objects.create(**validated_data)
+        for item_data in items_data:
+            self._set_item_defaults(item_data)
+            TransferItem.objects.create(transferhead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                self._set_item_defaults(item_data)
+                TransferItem.objects.create(transferhead=instance, **item_data)
+        return instance
+
+
+class TransferHeadListSerializer(serializers.ModelSerializer):
+    fromcustomer_name = serializers.CharField(source="fromcustomer.costname", read_only=True)
+    tocustomer_name = serializers.CharField(source="tocustomer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = TransferHead
+        fields = ["id", "invoiceno", "invoicedate", "remark", "fromcustomer", "fromcustomer_name", "tocustomer", "tocustomer_name", "items_count", "created_at"]
+
+
+# ── Damage ────────────────────────────────────────────────────────────────────
+
+class DamageItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = DamageItem
+        fields = [
+            "id", "damagehead", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "damagerate", "damageprice",
+        ]
+
+
+class DamageItemCreateSerializer(DamageItemSerializer):
+    class Meta(DamageItemSerializer.Meta):
+        fields = [
+            "id", "damagehead", "product", "product_name", "product_code",
+            "quantity", "opnbalance", "clbalance",
+            "purrate", "damagerate", "damageprice",
+        ]
+
+
+class DamageHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = DamageItemSerializer(many=True, required=False, default=[])
+    invoiceno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = DamageHead
+        fields = [
+            "id", "invoiceno", "invoicedate", "remark",
+            "customer", "customer_name",
+            "vouchercode", "vouchercode_short",
+            "monthlist", "yearlist",
+            "created_at", "updated_at", "items",
+        ]
+
+    def _set_item_defaults(self, item_data):
+        product = item_data.get("product")
+        qty = item_data.get("quantity", 0)
+        if product:
+            item_data.setdefault("opnbalance", product.currentqty)
+            item_data.setdefault("clbalance", product.currentqty - qty)
+            item_data.setdefault("purrate", product.purchaserate)
+            item_data.setdefault("damagerate", product.salesrate)
+            item_data.setdefault("damageprice", qty * item_data.get("damagerate", product.salesrate))
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items")
+        head = DamageHead.objects.create(**validated_data)
+        for item_data in items_data:
+            self._set_item_defaults(item_data)
+            DamageItem.objects.create(damagehead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                self._set_item_defaults(item_data)
+                DamageItem.objects.create(damagehead=instance, **item_data)
+        return instance
+
+
+class DamageHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = DamageHead
+        fields = [
+            "id", "invoiceno", "invoicedate", "remark",
+            "customer", "customer_name",
             "items_count", "created_at",
         ]

@@ -5,7 +5,7 @@ import DistrictOffice from "./components/DistrictOffice.jsx";
 import CircleOffice from "./components/CircleOffice.jsx";
 import OfficeList from "./components/OfficeList.jsx";
 import Designation from "./components/Designation.jsx";
-import StockDistribution from "./components/StockDistribution.jsx";
+import Distribution from "./components/Distribution.jsx";
 import StockRegister from "./components/StockRegister.jsx";
 import UserRegistration from "./components/UserRegistration.jsx";
 import ProductGroup from "./components/ProductGroup.jsx";
@@ -14,6 +14,13 @@ import MfgCompany from "./components/MfgCompany.jsx";
 import MonthCycle from "./components/MonthCycle.jsx";
 import ProductOpeningBalance from "./components/ProductOpeningBalance.jsx";
 import Supplier from "./components/Supplier.jsx";
+import Customer from "./components/Customer.jsx";
+import PurchaseReturns from "./components/PurchaseReturns.jsx";
+import SalesReturns from "./components/SalesReturns.jsx";
+import Damage from "./components/Damage.jsx";
+import PurchaseReport from "./components/PurchaseReport.jsx";
+import DailyPurchaseInvoice from "./components/DailyPurchaseInvoice.jsx";
+import DailyPurchaseSummary from "./components/DailyPurchaseSummary.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
   return (
@@ -243,6 +250,7 @@ const menuGroups = [
       { id: "product-information", label: "Product Information", icon: IconClipboard },
       { id: "product-opening-balance", label: "Product Opening Balance", icon: IconBalance },
       { id: "supplier", label: "Supplier", icon: IconBriefcase },
+      { id: "customer", label: "Customer", icon: IconBriefcase },
     ],
   },
   {
@@ -250,8 +258,11 @@ const menuGroups = [
     label: "Transaction",
     icon: IconTruck,
     items: [
-      { id: "stock-register", label: "Stock Register", icon: IconBox },
-      { id: "distribution", label: "Distribution", icon: IconTruck },
+      { id: "stock-register", label: "Stock Register / Purchase", icon: IconBox },
+      { id: "distribution", label: "Item Distribution", icon: IconTruck },
+      { id: "purchase-returns", label: "Purchase Returns", icon: IconTruck },
+      { id: "sales-returns", label: "Sales Returns", icon: IconTruck },
+      { id: "damage", label: "Damage", icon: IconTruck },
       { id: "purchase-planning", label: "Purchase Planning", icon: IconChart },
     ],
   },
@@ -263,6 +274,16 @@ const menuGroups = [
       { id: "user-registration", label: "User Registration", icon: IconProfile },
       { id: "user-role", label: "User Role", icon: IconUserCog },
       { id: "user-permission", label: "User Permission", icon: IconShield },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports",
+    icon: IconChart,
+    items: [
+      { id: "purchase-report", label: "Purchase Report", icon: IconClipboard },
+      { id: "daily-purchase-invoice", label: "Daily Purchase Invoice", icon: IconClipboard },
+      { id: "daily-purchase-summary", label: "Daily Purchase Summary", icon: IconClipboard },
     ],
   },
 ];
@@ -337,10 +358,24 @@ function renderContent(page, handlers) {
       return <ProductOpeningBalance />;
     case "supplier":
       return <Supplier />;
+    case "customer":
+      return <Customer />;
     case "stock-register":
       return <StockRegister />;
     case "distribution":
-      return <StockDistribution />;
+      return <Distribution />;
+    case "purchase-returns":
+      return <PurchaseReturns />;
+    case "sales-returns":
+      return <SalesReturns />;
+    case "damage":
+      return <Damage />;
+    case "purchase-report":
+      return <PurchaseReport />;
+    case "daily-purchase-invoice":
+      return <DailyPurchaseInvoice />;
+    case "daily-purchase-summary":
+      return <DailyPurchaseSummary />;
     case "purchase-planning":
       return (
         <PlaceholderPage
@@ -397,6 +432,7 @@ export default function App() {
     product: false,
     transaction: false,
     users: false,
+    reports: false,
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [avatar, setAvatar] = useState("");

@@ -28,6 +28,7 @@ export default function StockRegister() {
   const [products, setProducts] = useState([]);
   const [headForm, setHeadForm] = useState({ date: "", supplier_id: "", remark: "" });
   const [headId, setHeadId] = useState(null);
+  const [invoiceNo, setInvoiceNo] = useState(null);
   const [rows, setRows] = useState([emptyRow(1)]);
   const nextTempId = useRef(2);
 
@@ -97,6 +98,12 @@ export default function StockRegister() {
     let currentHeadId = headId;
 
     if (!currentHeadId) {
+      if (!headForm.date) {
+        setRows((prev) =>
+          prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Date is required." } : r))
+        );
+        return;
+      }
       if (!headForm.supplier_id) {
         setRows((prev) =>
           prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Select a supplier in the head section." } : r))
@@ -121,6 +128,7 @@ export default function StockRegister() {
         const data = await res.json();
         currentHeadId = data.id;
         setHeadId(data.id);
+        setInvoiceNo(data.invoiceno ?? null);
       } catch (e) {
         setRows((prev) =>
           prev.map((r) => (r.tempId === tempId ? { ...r, saving: false, error: "Failed to create purchase head." } : r))
@@ -154,6 +162,7 @@ export default function StockRegister() {
         emptyRow(newId),
       ]);
       setHeadId(null);
+      setInvoiceNo(null);
       setHeadForm({ date: "", supplier_id: "", remark: "" });
     } catch (e) {
       setRows((prev) =>
@@ -257,8 +266,7 @@ export default function StockRegister() {
               <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
                 <tr>
                   <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-left">Product Code</th>
-                  <th className="min-w-56 border-b border-slate-700 px-3 py-3 text-left">Product Name</th>
+                  <th className="min-w-64 border-b border-slate-700 px-3 py-3 text-left">Product</th>
                   <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Quantity</th>
                   <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Pur. Rate</th>
                   <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Sales Rate</th>
@@ -281,29 +289,10 @@ export default function StockRegister() {
                     <td className={`px-3 py-2 text-center text-xs font-semibold ${cellText}`}>
                       {idx + 1}
                     </td>
-                    {/* Product code dropdown */}
+                    {/* Combined product dropdown */}
                     <td className="px-3 py-2">
                       {row.saved ? (
-                        <span className="font-mono text-slate-950">{row.prodcode}</span>
-                      ) : (
-                        <select
-                          value={row.product_id}
-                          onChange={(e) => handleProductChange(row.tempId, e.target.value)}
-                          className="h-9 w-32 rounded border border-slate-600 bg-slate-800 px-2 text-sm text-white outline-none focus:border-cyan-400"
-                        >
-                          <option value="">-- Code --</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.prodcode}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </td>
-                    {/* Product name dropdown */}
-                    <td className="px-3 py-2">
-                      {row.saved ? (
-                        <span className="font-medium text-slate-950">{row.productname}</span>
+                        <span className="font-medium text-slate-950">{row.prodcode} — {row.productname}</span>
                       ) : (
                         <select
                           value={row.product_id}
@@ -313,7 +302,7 @@ export default function StockRegister() {
                           <option value="">-- Select Product --</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.productname}
+                              {p.prodcode} — {p.productname}
                             </option>
                           ))}
                         </select>
@@ -411,7 +400,7 @@ export default function StockRegister() {
                         )}
                       </div>
                       {row.error && (
-                        <p className="mt-1 text-center text-xs text-red-400">{row.error}</p>
+                        <p className="mt-1 text-center text-xs text-black">{row.error}</p>
                       )}
                     </td>
                   </tr>
@@ -425,9 +414,9 @@ export default function StockRegister() {
           )}
         </div>
 
-        {headId && (
+        {invoiceNo && (
           <p className="text-right text-xs text-slate-500">
-            Purchase Head ID: <span className="font-mono font-medium text-slate-700">{headId}</span>
+            Invoice No: <span className="font-mono font-semibold text-slate-800">{invoiceNo}</span>
           </p>
         )}
       </div>

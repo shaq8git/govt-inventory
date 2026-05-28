@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -24,6 +25,21 @@ from .views import (
     SupplierViewSet,
     PurchaseHeadViewSet,
     PurchaseItemViewSet,
+    DeskViewSet,
+    PurRetHeadViewSet,
+    PurRetItemViewSet,
+    CustomerViewSet,
+    SalesHeadViewSet,
+    SalesItemViewSet,
+    SlRetHeadViewSet,
+    SlRetItemViewSet,
+    ReplaceHeadViewSet,
+    ReplaceItemViewSet,
+    TransferHeadViewSet,
+    TransferItemViewSet,
+    DamageHeadViewSet,
+    DamageItemViewSet,
+    PurchaseSummaryView,
 )
 
 router = DefaultRouter()
@@ -50,5 +66,21 @@ router.register(r"voucher-codes", VoucherCodeViewSet)
 router.register(r"suppliers", SupplierViewSet)
 router.register(r"purchase-heads", PurchaseHeadViewSet)
 router.register(r"purchase-items", PurchaseItemViewSet)
+router.register(r"desks", DeskViewSet)
+router.register(r"purret-heads", PurRetHeadViewSet)
+router.register(r"purret-items", PurRetItemViewSet)
+router.register(r"customers", CustomerViewSet)
+router.register(r"sales-heads", SalesHeadViewSet)
+router.register(r"sales-items", SalesItemViewSet)
+router.register(r"slret-heads", SlRetHeadViewSet)
+router.register(r"slret-items", SlRetItemViewSet)
+router.register(r"replace-heads", ReplaceHeadViewSet)
+router.register(r"replace-items", ReplaceItemViewSet)
+router.register(r"transfer-heads", TransferHeadViewSet)
+router.register(r"transfer-items", TransferItemViewSet)
+router.register(r"damage-heads", DamageHeadViewSet)
+router.register(r"damage-items", DamageItemViewSet)
 
-urlpatterns = router.urls
+urlpatterns = router.urls + [
+    path("purchase-summary/", PurchaseSummaryView.as_view(), name="purchase-summary"),
+]

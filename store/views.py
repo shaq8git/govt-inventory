@@ -4,9 +4,10 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem
 from .serializers import (
     CategorySerializer,
     CircleOfficeSerializer,
@@ -35,6 +36,27 @@ from .serializers import (
     PurchaseHeadSerializer,
     PurchaseHeadListSerializer,
     PurchaseItemCreateSerializer,
+    PurchaseReportSerializer,
+    DeskSerializer,
+    PurRetHeadSerializer,
+    PurRetHeadListSerializer,
+    PurRetItemCreateSerializer,
+    CustomerSerializer,
+    SalesHeadSerializer,
+    SalesHeadListSerializer,
+    SalesItemCreateSerializer,
+    SlRetHeadSerializer,
+    SlRetHeadListSerializer,
+    SlRetItemCreateSerializer,
+    ReplaceHeadSerializer,
+    ReplaceHeadListSerializer,
+    ReplaceItemCreateSerializer,
+    TransferHeadSerializer,
+    TransferHeadListSerializer,
+    TransferItemCreateSerializer,
+    DamageHeadSerializer,
+    DamageHeadListSerializer,
+    DamageItemCreateSerializer,
 )
 
 User = get_user_model()
@@ -279,12 +301,23 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class PurchaseItemViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseItem.objects.select_related("product", "purchasehead").all()
-    serializer_class = PurchaseItemCreateSerializer
+    queryset = PurchaseItem.objects.select_related(
+        "product__productgroup", "purchasehead__supplier"
+    ).all()
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["purchasehead"]
+    filterset_fields = {
+        "purchasehead": ["exact"],
+        "product": ["exact"],
+        "product__productgroup": ["exact"],
+        "purchasehead__invoicedate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PurchaseReportSerializer
+        return PurchaseItemCreateSerializer
 
 
 class PurchaseHeadViewSet(viewsets.ModelViewSet):
@@ -295,12 +328,177 @@ class PurchaseHeadViewSet(viewsets.ModelViewSet):
     pagination_class = None
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["invoiceno", "supplier__supname"]
-    filterset_fields = ["supplier", "monthlist", "yearlist"]
+    filterset_fields = {
+        "supplier": ["exact"],
+        "monthlist": ["exact"],
+        "yearlist": ["exact"],
+        "items__product": ["exact"],
+        "invoicedate": ["exact", "gte", "lte"],
+    }
 
     def get_serializer_class(self):
         if self.action == "list":
             return PurchaseHeadListSerializer
         return PurchaseHeadSerializer
+
+
+class DeskViewSet(viewsets.ModelViewSet):
+    queryset = Desk.objects.all()
+    serializer_class = DeskSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["deskname", "location"]
+
+
+class PurRetItemViewSet(viewsets.ModelViewSet):
+    queryset = PurRetItem.objects.select_related("product", "purrethead").all()
+    serializer_class = PurRetItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["purrethead"]
+
+
+class PurRetHeadViewSet(viewsets.ModelViewSet):
+    queryset = PurRetHead.objects.select_related(
+        "supplier", "vouchercode", "monthlist", "yearlist"
+    ).prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "supplier__supname"]
+    filterset_fields = ["supplier", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return PurRetHeadListSerializer
+        return PurRetHeadSerializer
+
+
+class CustomerViewSet(viewsets.ModelViewSet):
+    queryset = Customer.objects.select_related("desk").all()
+    serializer_class = CustomerSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["costname", "contact", "address"]
+    filterset_fields = ["desk"]
+
+
+class SalesItemViewSet(viewsets.ModelViewSet):
+    queryset = SalesItem.objects.select_related("product", "saleshead").all()
+    serializer_class = SalesItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["saleshead"]
+
+
+class SalesHeadViewSet(viewsets.ModelViewSet):
+    queryset = SalesHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "customer__costname"]
+    filterset_fields = ["customer", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return SalesHeadListSerializer
+        return SalesHeadSerializer
+
+
+class SlRetItemViewSet(viewsets.ModelViewSet):
+    queryset = SlRetItem.objects.select_related("product", "slrethead").all()
+    serializer_class = SlRetItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["slrethead"]
+
+
+class SlRetHeadViewSet(viewsets.ModelViewSet):
+    queryset = SlRetHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "customer__costname"]
+    filterset_fields = ["customer", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return SlRetHeadListSerializer
+        return SlRetHeadSerializer
+
+
+class ReplaceItemViewSet(viewsets.ModelViewSet):
+    queryset = ReplaceItem.objects.select_related("product", "replacehead").all()
+    serializer_class = ReplaceItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["replacehead"]
+
+
+class ReplaceHeadViewSet(viewsets.ModelViewSet):
+    queryset = ReplaceHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "customer__costname"]
+    filterset_fields = ["customer", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ReplaceHeadListSerializer
+        return ReplaceHeadSerializer
+
+
+class TransferItemViewSet(viewsets.ModelViewSet):
+    queryset = TransferItem.objects.select_related("product", "transferhead").all()
+    serializer_class = TransferItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["transferhead"]
+
+
+class TransferHeadViewSet(viewsets.ModelViewSet):
+    queryset = TransferHead.objects.select_related("fromcustomer", "tocustomer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "fromcustomer__costname", "tocustomer__costname"]
+    filterset_fields = ["fromcustomer", "tocustomer", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return TransferHeadListSerializer
+        return TransferHeadSerializer
+
+
+class DamageItemViewSet(viewsets.ModelViewSet):
+    queryset = DamageItem.objects.select_related("product", "damagehead").all()
+    serializer_class = DamageItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["damagehead"]
+
+
+class DamageHeadViewSet(viewsets.ModelViewSet):
+    queryset = DamageHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["invoiceno", "customer__costname"]
+    filterset_fields = ["customer", "monthlist", "yearlist"]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return DamageHeadListSerializer
+        return DamageHeadSerializer
 
 
 class IssuanceRecordViewSet(viewsets.ModelViewSet):
@@ -337,6 +535,50 @@ class IssuanceRecordViewSet(viewsets.ModelViewSet):
                 qs.values("department__name")
                 .annotate(total=Count("id"))
                 .order_by("-total")[:10]
-            ),  
+            ),
         }
         return Response(data)
+
+
+class PurchaseSummaryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+
+        qs = PurchaseItem.objects.select_related(
+            "product__productgroup", "purchasehead"
+        )
+        if date_from:
+            qs = qs.filter(purchasehead__invoicedate__gte=date_from)
+        if date_to:
+            qs = qs.filter(purchasehead__invoicedate__lte=date_to)
+
+        rows = (
+            qs.values(
+                "purchasehead__invoicedate",
+                "product__prodcode",
+                "product__productname",
+                "product__productgroup__groupname",
+            )
+            .annotate(total_qty=Sum("quantity"), total_amount=Sum("purprice"))
+            .order_by(
+                "purchasehead__invoicedate",
+                "product__productgroup__groupname",
+                "product__productname",
+            )
+        )
+
+        result = [
+            {
+                "date": row["purchasehead__invoicedate"],
+                "product_code": row["product__prodcode"],
+                "product_name": row["product__productname"],
+                "product_group": row["product__productgroup__groupname"],
+                "total_qty": row["total_qty"],
+                "total_amount": str(row["total_amount"]),
+            }
+            for row in rows
+        ]
+        return Response(result)

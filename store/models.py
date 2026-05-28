@@ -382,7 +382,7 @@ class IssuanceLine(models.Model):
 
 
 class VoucherCode(models.Model):
-    shortname = models.CharField(max_length=2, blank=True, null=True)
+    shortname = models.CharField(max_length=5, blank=True, null=True)
     description = models.CharField(max_length=25, blank=True, null=True)
 
     class Meta:
@@ -440,17 +440,19 @@ class PurchaseHead(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk and not self.invoiceno:
             from datetime import date as _date
-            today = _date.today()
-            prefix = f"PUR-{today.strftime('%Y%m%d')}-"
+            ref = self.invoicedate if self.invoicedate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
             last = (
-                PurchaseHead.objects.filter(invoiceno__startswith=prefix)
-                .order_by("-invoiceno").first()
+                PurchaseHead.objects
+                .filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno")
+                .first()
             )
             seq = 1
             if last:
                 try:
-                    seq = int(last.invoiceno.split("-")[-1]) + 1
-                except ValueError:
+                    seq = int(last.invoiceno[8:]) + 1
+                except (ValueError, IndexError):
                     seq = 1
             self.invoiceno = f"{prefix}{seq:03d}"
         super().save(*args, **kwargs)
@@ -497,3 +499,566 @@ class PurchaseItem(models.Model):
 
     def __str__(self):
         return f"{self.purchasehead.invoiceno} — {self.product.productname}"
+
+
+class Desk(models.Model):
+    deskname = models.CharField(max_length=50, blank=True, null=True)
+    location = models.CharField(max_length=50, blank=True, null=True)
+
+    class Meta:
+        db_table = "desk"
+        ordering = ["deskname"]
+
+    def __str__(self):
+        return self.deskname or ""
+
+
+class PurRetHead(models.Model):
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="purret_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="purret_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    purinvoiceno = models.CharField(max_length=20, blank=True, null=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="purret_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="purret_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "purrethead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            from datetime import date as _date
+            ref = self.invoicedate if self.invoicedate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                PurRetHead.objects
+                .filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.invoiceno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.invoiceno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class PurRetItem(models.Model):
+    purrethead = models.ForeignKey(
+        PurRetHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="purret_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    salesrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "purretitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") - self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") + self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.purrethead.invoiceno} — {self.product.productname}"
+
+
+class Customer(models.Model):
+    costname = models.CharField(max_length=50, blank=True, null=True)
+    desk = models.ForeignKey(
+        Desk, on_delete=models.PROTECT, related_name="customers",
+        null=True, blank=True
+    )
+    contact = models.CharField(max_length=50, blank=True, null=True)
+    address = models.CharField(max_length=150, blank=True, null=True)
+    shipingadr = models.CharField(max_length=250, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "customer"
+        ordering = ["costname"]
+
+    def __str__(self):
+        return self.costname or ""
+
+
+def _auto_invoiceno(model_class, prefix):
+    from datetime import date as _date
+    today = _date.today()
+    full_prefix = f"{prefix}-{today.strftime('%Y%m%d')}-"
+    last = (
+        model_class.objects.filter(invoiceno__startswith=full_prefix)
+        .order_by("-invoiceno").first()
+    )
+    seq = 1
+    if last:
+        try:
+            seq = int(last.invoiceno.split("-")[-1]) + 1
+        except ValueError:
+            seq = 1
+    return f"{full_prefix}{seq:03d}"
+
+
+class SalesHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="sales_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="sales_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="sales_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="sales_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "saleshead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            from datetime import date as _date
+            ref = self.invoicedate if self.invoicedate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                SalesHead.objects
+                .filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.invoiceno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.invoiceno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class SalesItem(models.Model):
+    saleshead = models.ForeignKey(
+        SalesHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="sales_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    salesrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    salesprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "salesitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") - self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") + self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.saleshead.invoiceno} — {self.product.productname}"
+
+
+class SlRetHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="slret_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="slret_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    saleinvoiceno = models.CharField(max_length=20, blank=True, null=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="slret_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="slret_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "slrethead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            from datetime import date as _date
+            ref = self.invoicedate if self.invoicedate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                SlRetHead.objects
+                .filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.invoiceno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.invoiceno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class SlRetItem(models.Model):
+    slrethead = models.ForeignKey(
+        SlRetHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="slret_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    salesrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    salesprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "slretitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") + self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") - self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.slrethead.invoiceno} — {self.product.productname}"
+
+
+class ReplaceHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="replace_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="replace_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    saleinvoiceno = models.CharField(max_length=20, blank=True, null=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="replace_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="replace_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "replacehead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            self.invoiceno = _auto_invoiceno(ReplaceHead, "RPL")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class ReplaceItem(models.Model):
+    replacehead = models.ForeignKey(
+        ReplaceHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="replace_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    replacerate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    replaceprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "replaceitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") - self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") + self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.replacehead.invoiceno} — {self.product.productname}"
+
+
+class TransferHead(models.Model):
+    fromcustomer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="transfer_heads_from"
+    )
+    tocustomer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="transfer_heads_to"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="transfer_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="transfer_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="transfer_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "tranferhead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            self.invoiceno = _auto_invoiceno(TransferHead, "TRF")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class TransferItem(models.Model):
+    transferhead = models.ForeignKey(
+        TransferHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="transfer_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    transrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    transprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "tranferitem"
+        ordering = ["product__productname"]
+
+    def __str__(self):
+        return f"{self.transferhead.invoiceno} — {self.product.productname}"
+
+
+class DamageHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="damage_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="damage_heads",
+        null=True, blank=True
+    )
+    invoiceno = models.CharField(max_length=20, blank=True)
+    invoicedate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="damage_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="damage_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "damagehead"
+        ordering = ["-invoicedate", "invoiceno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.invoiceno:
+            from datetime import date as _date
+            ref = self.invoicedate if self.invoicedate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                DamageHead.objects
+                .filter(invoiceno__startswith=prefix)
+                .order_by("-invoiceno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.invoiceno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.invoiceno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.invoiceno
+
+
+class DamageItem(models.Model):
+    damagehead = models.ForeignKey(
+        DamageHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="damage_items"
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opnbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    clbalance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    purrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    damagerate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    damageprice = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "damageitem"
+        ordering = ["product__productname"]
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            Product.objects.filter(pk=self.product_id).update(
+                currentqty=models.F("currentqty") - self.quantity
+            )
+
+    def delete(self, *args, **kwargs):
+        Product.objects.filter(pk=self.product_id).update(
+            currentqty=models.F("currentqty") + self.quantity
+        )
+        super().delete(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.damagehead.invoiceno} — {self.product.productname}"
