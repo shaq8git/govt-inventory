@@ -649,48 +649,68 @@ class PurchaseSalesReportView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        date_from = request.query_params.get("date_from")
-        date_to = request.query_params.get("date_to")
+        from datetime import date as _date, timedelta
+        from decimal import Decimal
+
+        date_from_str = request.query_params.get("date_from")
+        date_to_str = request.query_params.get("date_to")
         group_id = request.query_params.get("product_group")
         product_id = request.query_params.get("product")
 
-        pur_qs = PurchaseItem.objects.select_related("purchasehead")
-        sal_qs = SalesItem.objects.select_related("saleshead")
+        date_from = _date.fromisoformat(date_from_str) if date_from_str else None
+        date_to = _date.fromisoformat(date_to_str) if date_to_str else None
+        # Opening balance = stock at end of day before date_from
+        opening_cutoff = (date_from - timedelta(days=1)) if date_from else None
 
+        def product_filter(qs):
+            if product_id:
+                return qs.filter(product_id=product_id)
+            if group_id:
+                return qs.filter(product__productgroup_id=group_id)
+            return qs
+
+        # Quantities IN the date range
+        pur_in = product_filter(PurchaseItem.objects.all())
+        sal_in = product_filter(SalesItem.objects.all())
         if date_from:
-            pur_qs = pur_qs.filter(purchasehead__invoicedate__gte=date_from)
-            sal_qs = sal_qs.filter(saleshead__invoicedate__gte=date_from)
+            pur_in = pur_in.filter(purchasehead__invoicedate__gte=date_from)
+            sal_in = sal_in.filter(saleshead__invoicedate__gte=date_from)
         if date_to:
-            pur_qs = pur_qs.filter(purchasehead__invoicedate__lte=date_to)
-            sal_qs = sal_qs.filter(saleshead__invoicedate__lte=date_to)
-        if product_id:
-            pur_qs = pur_qs.filter(product_id=product_id)
-            sal_qs = sal_qs.filter(product_id=product_id)
-        elif group_id:
-            pur_qs = pur_qs.filter(product__productgroup_id=group_id)
-            sal_qs = sal_qs.filter(product__productgroup_id=group_id)
+            pur_in = pur_in.filter(purchasehead__invoicedate__lte=date_to)
+            sal_in = sal_in.filter(saleshead__invoicedate__lte=date_to)
 
-        pur_by_product = {
-            row["product"]: row["total"]
-            for row in pur_qs.values("product").annotate(total=Sum("quantity"))
-        }
-        sal_by_product = {
-            row["product"]: row["total"]
-            for row in sal_qs.values("product").annotate(total=Sum("quantity"))
-        }
+        # Quantities BEFORE the range (to calculate opening balance)
+        if opening_cutoff:
+            pur_before = product_filter(
+                PurchaseItem.objects.filter(purchasehead__invoicedate__lte=opening_cutoff)
+            )
+            sal_before = product_filter(
+                SalesItem.objects.filter(saleshead__invoicedate__lte=opening_cutoff)
+            )
+        else:
+            pur_before = PurchaseItem.objects.none()
+            sal_before = SalesItem.objects.none()
 
-        product_ids = set(pur_by_product) | set(sal_by_product)
+        pur_in_map = {r["product"]: r["total"] for r in pur_in.values("product").annotate(total=Sum("quantity"))}
+        sal_in_map = {r["product"]: r["total"] for r in sal_in.values("product").annotate(total=Sum("quantity"))}
+        pur_before_map = {r["product"]: r["total"] for r in pur_before.values("product").annotate(total=Sum("quantity"))}
+        sal_before_map = {r["product"]: r["total"] for r in sal_before.values("product").annotate(total=Sum("quantity"))}
+
+        product_ids = set(pur_in_map) | set(sal_in_map)
         if not product_ids:
             return Response([])
 
         products_qs = Product.objects.select_related("productgroup").filter(id__in=product_ids)
 
-        from decimal import Decimal
         result = []
         for prod in products_qs.order_by("productgroup__groupname", "productname"):
-            pur_qty = pur_by_product.get(prod.id, Decimal("0"))
-            sal_qty = sal_by_product.get(prod.id, Decimal("0"))
-            opening = prod.currentqty - pur_qty + sal_qty
+            pur_qty = pur_in_map.get(prod.id, Decimal("0"))
+            sal_qty = sal_in_map.get(prod.id, Decimal("0"))
+            pur_before_qty = pur_before_map.get(prod.id, Decimal("0"))
+            sal_before_qty = sal_before_map.get(prod.id, Decimal("0"))
+            # opening = initial openqty + all purchases before range - all sales before range
+            opening = Decimal(prod.openqty) + pur_before_qty - sal_before_qty
+            closing = opening + pur_qty - sal_qty
             result.append({
                 "product_id": prod.id,
                 "product_code": prod.prodcode,
@@ -699,6 +719,7 @@ class PurchaseSalesReportView(APIView):
                 "opening_balance": str(opening),
                 "purchase_qty": str(pur_qty),
                 "sales_qty": str(sal_qty),
+                "closing_balance": str(closing),
             })
 
         return Response(result)

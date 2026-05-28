@@ -31,6 +31,7 @@ function buildPrintHTML(rows, filters) {
         <td class="center">${Number(r.opening_balance).toFixed(0)}</td>
         <td class="center">${Number(r.purchase_qty).toFixed(0)}</td>
         <td class="center">${Number(r.sales_qty).toFixed(0)}</td>
+        <td class="center">${Number(r.closing_balance).toFixed(0)}</td>
       </tr>`
     )
     .join("");
@@ -66,9 +67,10 @@ function buildPrintHTML(rows, filters) {
         <th style="width:55px">Code</th>
         <th style="width:140px">Group</th>
         <th>Product Name</th>
-        <th style="width:70px" class="center">Opening Bal.</th>
-        <th style="width:70px" class="center">Purchase Qty</th>
-        <th style="width:70px" class="center">Sales Qty</th>
+        <th style="width:65px" class="center">Opening Bal.</th>
+        <th style="width:65px" class="center">Purchase Qty</th>
+        <th style="width:65px" class="center">Sales Qty</th>
+        <th style="width:65px" class="center">Closing Bal.</th>
       </tr>
     </thead>
     <tbody>${bodyRows}</tbody>
@@ -78,6 +80,7 @@ function buildPrintHTML(rows, filters) {
         <td></td>
         <td class="center">${totalPur.toFixed(0)}</td>
         <td class="center">${totalSal.toFixed(0)}</td>
+        <td></td>
       </tr>
     </tfoot>
   </table>
@@ -143,6 +146,7 @@ export default function PurchaseSalesReport() {
 
   const totalPur = rows.reduce((s, r) => s + Number(r.purchase_qty ?? 0), 0);
   const totalSal = rows.reduce((s, r) => s + Number(r.sales_qty ?? 0), 0);
+  const totalClosing = rows.reduce((s, r) => s + Number(r.closing_balance ?? 0), 0);
 
   const inputCls =
     "h-9 rounded border-2 border-slate-600 bg-white px-2 text-sm text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-300";
@@ -244,15 +248,16 @@ export default function PurchaseSalesReport() {
                     <th className="border-b border-slate-700 px-3 py-3 text-center">Code</th>
                     <th className="border-b border-slate-700 px-3 py-3 text-left">Group</th>
                     <th className="border-b border-slate-700 px-3 py-3 text-left">Product Name</th>
-                    <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Opening Bal.</th>
-                    <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Purchase Qty</th>
-                    <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Sales Qty</th>
+                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Opening Bal.</th>
+                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Purchase Qty</th>
+                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Sales Qty</th>
+                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Closing Bal.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-sm text-slate-400">
+                      <td colSpan={8} className="py-8 text-center text-sm text-slate-400">
                         No records found for the selected filters.
                       </td>
                     </tr>
@@ -278,6 +283,9 @@ export default function PurchaseSalesReport() {
                             <td className="px-3 py-2 text-center tabular-nums text-slate-950">
                               {Number(row.sales_qty).toFixed(0)}
                             </td>
+                            <td className="px-3 py-2 text-center tabular-nums text-slate-950">
+                              {Number(row.closing_balance).toFixed(0)}
+                            </td>
                           </tr>
                         );
                       })}
@@ -286,6 +294,7 @@ export default function PurchaseSalesReport() {
                         <td className="px-3 py-2" />
                         <td className="px-3 py-2 text-center tabular-nums">{totalPur.toFixed(0)}</td>
                         <td className="px-3 py-2 text-center tabular-nums">{totalSal.toFixed(0)}</td>
+                        <td className="px-3 py-2 text-center tabular-nums">{totalClosing.toFixed(0)}</td>
                       </tr>
                     </>
                   )}
