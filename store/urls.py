@@ -40,6 +40,8 @@ from .views import (
     DamageHeadViewSet,
     DamageItemViewSet,
     PurchaseSummaryView,
+    SalesSummaryView,
+    PurchaseSalesReportView,
 )
 
 router = DefaultRouter()
@@ -83,4 +85,6 @@ router.register(r"damage-items", DamageItemViewSet)
 
 urlpatterns = router.urls + [
     path("purchase-summary/", PurchaseSummaryView.as_view(), name="purchase-summary"),
+    path("sales-summary/", SalesSummaryView.as_view(), name="sales-summary"),
+    path("purchase-sales-report/", PurchaseSalesReportView.as_view(), name="purchase-sales-report"),
 ]

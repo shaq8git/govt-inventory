@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Q
 from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem
 from .serializers import (
     CategorySerializer,
@@ -45,6 +45,7 @@ from .serializers import (
     SalesHeadSerializer,
     SalesHeadListSerializer,
     SalesItemCreateSerializer,
+    SalesReportSerializer,
     SlRetHeadSerializer,
     SlRetHeadListSerializer,
     SlRetItemCreateSerializer,
@@ -387,12 +388,23 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
 
 class SalesItemViewSet(viewsets.ModelViewSet):
-    queryset = SalesItem.objects.select_related("product", "saleshead").all()
-    serializer_class = SalesItemCreateSerializer
+    queryset = SalesItem.objects.select_related(
+        "product__productgroup", "saleshead__customer"
+    ).all()
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["saleshead"]
+    filterset_fields = {
+        "saleshead": ["exact"],
+        "product": ["exact"],
+        "product__productgroup": ["exact"],
+        "saleshead__invoicedate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return SalesReportSerializer
+        return SalesItemCreateSerializer
 
 
 class SalesHeadViewSet(viewsets.ModelViewSet):
@@ -401,7 +413,12 @@ class SalesHeadViewSet(viewsets.ModelViewSet):
     pagination_class = None
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ["invoiceno", "customer__costname"]
-    filterset_fields = ["customer", "monthlist", "yearlist"]
+    filterset_fields = {
+        "customer": ["exact"],
+        "monthlist": ["exact"],
+        "yearlist": ["exact"],
+        "invoicedate": ["exact", "gte", "lte"],
+    }
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -581,4 +598,107 @@ class PurchaseSummaryView(APIView):
             }
             for row in rows
         ]
+        return Response(result)
+
+
+class SalesSummaryView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+
+        qs = SalesItem.objects.select_related(
+            "product__productgroup", "saleshead"
+        )
+        if date_from:
+            qs = qs.filter(saleshead__invoicedate__gte=date_from)
+        if date_to:
+            qs = qs.filter(saleshead__invoicedate__lte=date_to)
+
+        rows = (
+            qs.values(
+                "saleshead__invoicedate",
+                "product__prodcode",
+                "product__productname",
+                "product__productgroup__groupname",
+            )
+            .annotate(total_qty=Sum("quantity"), total_amount=Sum("salesprice"))
+            .order_by(
+                "saleshead__invoicedate",
+                "product__productgroup__groupname",
+                "product__productname",
+            )
+        )
+
+        result = [
+            {
+                "date": row["saleshead__invoicedate"],
+                "product_code": row["product__prodcode"],
+                "product_name": row["product__productname"],
+                "product_group": row["product__productgroup__groupname"],
+                "total_qty": row["total_qty"],
+                "total_amount": str(row["total_amount"]),
+            }
+            for row in rows
+        ]
+        return Response(result)
+
+
+class PurchaseSalesReportView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        group_id = request.query_params.get("product_group")
+        product_id = request.query_params.get("product")
+
+        pur_qs = PurchaseItem.objects.select_related("purchasehead")
+        sal_qs = SalesItem.objects.select_related("saleshead")
+
+        if date_from:
+            pur_qs = pur_qs.filter(purchasehead__invoicedate__gte=date_from)
+            sal_qs = sal_qs.filter(saleshead__invoicedate__gte=date_from)
+        if date_to:
+            pur_qs = pur_qs.filter(purchasehead__invoicedate__lte=date_to)
+            sal_qs = sal_qs.filter(saleshead__invoicedate__lte=date_to)
+        if product_id:
+            pur_qs = pur_qs.filter(product_id=product_id)
+            sal_qs = sal_qs.filter(product_id=product_id)
+        elif group_id:
+            pur_qs = pur_qs.filter(product__productgroup_id=group_id)
+            sal_qs = sal_qs.filter(product__productgroup_id=group_id)
+
+        pur_by_product = {
+            row["product"]: row["total"]
+            for row in pur_qs.values("product").annotate(total=Sum("quantity"))
+        }
+        sal_by_product = {
+            row["product"]: row["total"]
+            for row in sal_qs.values("product").annotate(total=Sum("quantity"))
+        }
+
+        product_ids = set(pur_by_product) | set(sal_by_product)
+        if not product_ids:
+            return Response([])
+
+        products_qs = Product.objects.select_related("productgroup").filter(id__in=product_ids)
+
+        from decimal import Decimal
+        result = []
+        for prod in products_qs.order_by("productgroup__groupname", "productname"):
+            pur_qty = pur_by_product.get(prod.id, Decimal("0"))
+            sal_qty = sal_by_product.get(prod.id, Decimal("0"))
+            opening = prod.currentqty - pur_qty + sal_qty
+            result.append({
+                "product_id": prod.id,
+                "product_code": prod.prodcode,
+                "product_name": prod.productname,
+                "product_group": prod.productgroup.groupname,
+                "opening_balance": str(opening),
+                "purchase_qty": str(pur_qty),
+                "sales_qty": str(sal_qty),
+            })
+
         return Response(result)

@@ -21,6 +21,10 @@ import Damage from "./components/Damage.jsx";
 import PurchaseReport from "./components/PurchaseReport.jsx";
 import DailyPurchaseInvoice from "./components/DailyPurchaseInvoice.jsx";
 import DailyPurchaseSummary from "./components/DailyPurchaseSummary.jsx";
+import SalesReport from "./components/SalesReport.jsx";
+import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
+import DailySalesSummary from "./components/DailySalesSummary.jsx";
+import PurchaseSalesReport from "./components/PurchaseSalesReport.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
   return (
@@ -284,6 +288,10 @@ const menuGroups = [
       { id: "purchase-report", label: "Purchase Report", icon: IconClipboard },
       { id: "daily-purchase-invoice", label: "Daily Purchase Invoice", icon: IconClipboard },
       { id: "daily-purchase-summary", label: "Daily Purchase Summary", icon: IconClipboard },
+      { id: "sales-report", label: "Sales Report", icon: IconClipboard },
+      { id: "daily-sales-invoice", label: "Daily Sales Invoice", icon: IconClipboard },
+      { id: "daily-sales-summary", label: "Daily Sales Summary", icon: IconClipboard },
+      { id: "purchase-sales-report", label: "Purchase & Sales Report", icon: IconClipboard },
     ],
   },
 ];
@@ -376,6 +384,14 @@ function renderContent(page, handlers) {
       return <DailyPurchaseInvoice />;
     case "daily-purchase-summary":
       return <DailyPurchaseSummary />;
+    case "sales-report":
+      return <SalesReport />;
+    case "daily-sales-invoice":
+      return <DailySalesInvoice />;
+    case "daily-sales-summary":
+      return <DailySalesSummary />;
+    case "purchase-sales-report":
+      return <PurchaseSalesReport />;
     case "purchase-planning":
       return (
         <PlaceholderPage

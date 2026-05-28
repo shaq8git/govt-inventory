@@ -564,6 +564,24 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 # ── Sales ─────────────────────────────────────────────────────────────────────
 
+class SalesReportSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.CharField(source="product.prodcode", read_only=True)
+    product_group = serializers.CharField(source="product.productgroup.groupname", read_only=True)
+    invoiceno = serializers.CharField(source="saleshead.invoiceno", read_only=True)
+    invoicedate = serializers.DateField(source="saleshead.invoicedate", read_only=True)
+    customer_name = serializers.CharField(source="saleshead.customer.costname", read_only=True)
+    remark = serializers.CharField(source="saleshead.remark", read_only=True, default="")
+
+    class Meta:
+        model = SalesItem
+        fields = [
+            "id", "invoiceno", "invoicedate", "customer_name",
+            "product", "product_name", "product_code", "product_group",
+            "quantity", "salesrate", "salesprice", "remark",
+        ]
+
+
 class SalesItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.productname", read_only=True)
     product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
