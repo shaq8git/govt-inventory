@@ -8,9 +8,6 @@ const authHeaders = () => ({
 });
 
 function buildPrintHTML(rows, filters) {
-  const totalPur = rows.reduce((s, r) => s + Number(r.purchase_qty ?? 0), 0);
-  const totalSal = rows.reduce((s, r) => s + Number(r.sales_qty ?? 0), 0);
-
   const filterLine = [
     filters.group && `Group: ${filters.group}`,
     filters.product && `Product: ${filters.product}`,
@@ -20,17 +17,19 @@ function buildPrintHTML(rows, filters) {
     .filter(Boolean)
     .join("  |  ");
 
+  const lastRow = rows[rows.length - 1];
+  const totalPur = rows.reduce((s, r) => s + Number(r.purchase_qty ?? 0), 0);
+  const totalSal = rows.reduce((s, r) => s + Number(r.sales_qty ?? 0), 0);
+
   const bodyRows = rows
     .map(
       (r, i) => `
       <tr class="${i % 2 === 0 ? "alt" : ""}">
         <td class="center">${i + 1}</td>
-        <td class="center mono">${r.product_code ?? ""}</td>
-        <td>${r.product_group ?? "—"}</td>
-        <td>${r.product_name ?? "—"}</td>
+        <td class="center mono">${r.date ?? "—"}</td>
         <td class="center">${Number(r.opening_balance).toFixed(0)}</td>
-        <td class="center">${Number(r.purchase_qty).toFixed(0)}</td>
-        <td class="center">${Number(r.sales_qty).toFixed(0)}</td>
+        <td class="center">${Number(r.purchase_qty) > 0 ? Number(r.purchase_qty).toFixed(0) : "—"}</td>
+        <td class="center">${Number(r.sales_qty) > 0 ? Number(r.sales_qty).toFixed(0) : "—"}</td>
         <td class="center">${Number(r.closing_balance).toFixed(0)}</td>
       </tr>`
     )
@@ -40,18 +39,19 @@ function buildPrintHTML(rows, filters) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Purchase & Sales Report</title>
+  <title>Purchase &amp; Sales Report</title>
   <style>
-    @page { size: A4 landscape; margin: 15mm 12mm; }
+    @page { size: A4 portrait; margin: 15mm 12mm; }
     body { font-family: Arial, sans-serif; font-size: 11px; color: #111; }
     h2 { margin: 0 0 4px; font-size: 16px; }
     .org { font-size: 12px; color: #555; margin-bottom: 2px; }
-    .filters { font-size: 10px; color: #666; margin-bottom: 10px; }
+    .filters { font-size: 10px; color: #444; margin-bottom: 10px; font-weight: bold; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th { background: #1e293b; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+    th { background: #1e293b; color: #fff; padding: 5px 6px; text-align: center; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+    th.left { text-align: left; }
     td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
     tr.alt td { background: #f8fafc; }
-    tfoot td { background: #1e293b; color: #fff; font-weight: bold; padding: 5px 6px; }
+    tfoot td { background: #1e293b; color: #fff; font-weight: bold; padding: 5px 6px; text-align: center; }
     .center { text-align: center; }
     .mono { font-family: monospace; }
   </style>
@@ -64,23 +64,21 @@ function buildPrintHTML(rows, filters) {
     <thead>
       <tr>
         <th style="width:28px">#</th>
-        <th style="width:55px">Code</th>
-        <th style="width:140px">Group</th>
-        <th>Product Name</th>
-        <th style="width:65px" class="center">Opening Bal.</th>
-        <th style="width:65px" class="center">Purchase Qty</th>
-        <th style="width:65px" class="center">Sales Qty</th>
-        <th style="width:65px" class="center">Closing Bal.</th>
+        <th style="width:90px">Date</th>
+        <th style="width:80px">Opening Bal.</th>
+        <th style="width:80px">Purchase Qty</th>
+        <th style="width:80px">Sales Qty</th>
+        <th style="width:80px">Closing Bal.</th>
       </tr>
     </thead>
     <tbody>${bodyRows}</tbody>
     <tfoot>
       <tr>
-        <td colspan="4" style="text-align:right">Total</td>
+        <td colspan="2" style="text-align:right; padding-right:8px">Total / Closing</td>
         <td></td>
-        <td class="center">${totalPur.toFixed(0)}</td>
-        <td class="center">${totalSal.toFixed(0)}</td>
-        <td></td>
+        <td>${totalPur.toFixed(0)}</td>
+        <td>${totalSal.toFixed(0)}</td>
+        <td>${lastRow ? Number(lastRow.closing_balance).toFixed(0) : "—"}</td>
       </tr>
     </tfoot>
   </table>
@@ -98,6 +96,7 @@ export default function PurchaseSalesReport() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [appliedLabels, setAppliedLabels] = useState({ group: "", product: "", dateFrom: "", dateTo: "" });
 
   useEffect(() => {
     fetch(`${API}/product-groups/`, { headers: authHeaders() })
@@ -115,6 +114,12 @@ export default function PurchaseSalesReport() {
   async function handleGenerate() {
     setLoading(true);
     setSearched(true);
+    setAppliedLabels({
+      group: productGroups.find((g) => String(g.id) === String(selectedGroup))?.groupname ?? "",
+      product: products.find((p) => String(p.id) === String(selectedProduct))?.productname ?? "",
+      dateFrom,
+      dateTo,
+    });
     const params = new URLSearchParams();
     if (selectedProduct) params.set("product", selectedProduct);
     else if (selectedGroup) params.set("product_group", selectedGroup);
@@ -146,7 +151,7 @@ export default function PurchaseSalesReport() {
 
   const totalPur = rows.reduce((s, r) => s + Number(r.purchase_qty ?? 0), 0);
   const totalSal = rows.reduce((s, r) => s + Number(r.sales_qty ?? 0), 0);
-  const totalClosing = rows.reduce((s, r) => s + Number(r.closing_balance ?? 0), 0);
+  const lastRow = rows[rows.length - 1];
 
   const inputCls =
     "h-9 rounded border-2 border-slate-600 bg-white px-2 text-sm text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-300";
@@ -157,7 +162,7 @@ export default function PurchaseSalesReport() {
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-semibold text-slate-950">Purchase &amp; Sales Report</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Consolidated purchase and sales quantities per product for the selected period
+            Daily stock ledger — opening balance, purchases, sales and closing balance per day
           </p>
         </div>
       </section>
@@ -182,11 +187,11 @@ export default function PurchaseSalesReport() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-slate-700">Product</label>
+              <label className="text-sm font-semibold text-slate-700">Product Name</label>
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
-                className={`${inputCls} w-56`}
+                className={`${inputCls} w-60`}
               >
                 <option value="">-- All Products --</option>
                 {filteredProducts.map((p) => (
@@ -197,22 +202,12 @@ export default function PurchaseSalesReport() {
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-slate-700">Date From</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className={`${inputCls} w-40`}
-              />
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={`${inputCls} w-40`} />
             </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-slate-700">Date To</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className={`${inputCls} w-40`}
-              />
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={`${inputCls} w-40`} />
             </div>
 
             <button
@@ -237,7 +232,35 @@ export default function PurchaseSalesReport() {
           </div>
         </div>
 
-        {/* Results table */}
+        {/* Table header info */}
+        {searched && (
+          <div className="rounded-lg border border-slate-200 bg-white px-6 py-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-1">
+              {appliedLabels.group && (
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Product Group</span>
+                  <p className="font-semibold text-slate-900 mt-0.5">{appliedLabels.group}</p>
+                </div>
+              )}
+              {appliedLabels.product && (
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Product Name</span>
+                  <p className="font-semibold text-slate-900 mt-0.5">{appliedLabels.product}</p>
+                </div>
+              )}
+              {(appliedLabels.dateFrom || appliedLabels.dateTo) && (
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-500 uppercase tracking-wide text-xs">Period</span>
+                  <p className="font-mono font-semibold text-slate-900 mt-0.5">
+                    {appliedLabels.dateFrom || "—"} &nbsp;→&nbsp; {appliedLabels.dateTo || "—"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Ledger table */}
         {searched && (
           <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
             <div className="overflow-x-auto">
@@ -245,56 +268,60 @@ export default function PurchaseSalesReport() {
                 <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
                   <tr>
                     <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">Code</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Group</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Product Name</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Opening Bal.</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Purchase Qty</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Sales Qty</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Closing Bal.</th>
+                    <th className="border-b border-slate-700 px-3 py-3 text-center">Date</th>
+                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Opening Bal.</th>
+                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Purchase Qty</th>
+                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Sales Qty</th>
+                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Closing Bal.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-sm text-slate-400">
-                        No records found for the selected filters.
+                      <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
+                        No transactions found for the selected filters and date range.
                       </td>
                     </tr>
                   ) : (
                     <>
                       {rows.map((row, idx) => {
                         const isDark = idx % 2 === 0;
+                        const hasPur = Number(row.purchase_qty) > 0;
+                        const hasSal = Number(row.sales_qty) > 0;
                         return (
                           <tr
-                            key={row.product_id}
+                            key={row.date}
                             className={`${isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"} last:border-0`}
                           >
                             <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
-                            <td className="px-3 py-2 text-center font-mono text-slate-950">{row.product_code}</td>
-                            <td className="px-3 py-2 text-xs text-slate-950">{row.product_group ?? "—"}</td>
-                            <td className="px-3 py-2 font-medium text-slate-950">{row.product_name}</td>
+                            <td className="px-3 py-2 text-center font-mono tabular-nums text-slate-950">{row.date}</td>
                             <td className="px-3 py-2 text-center tabular-nums text-slate-950">
                               {Number(row.opening_balance).toFixed(0)}
                             </td>
-                            <td className="px-3 py-2 text-center tabular-nums text-slate-950">
-                              {Number(row.purchase_qty).toFixed(0)}
+                            <td className="px-3 py-2 text-center tabular-nums">
+                              {hasPur
+                                ? <span className="font-semibold text-emerald-700">{Number(row.purchase_qty).toFixed(0)}</span>
+                                : <span className="text-slate-400">—</span>}
                             </td>
-                            <td className="px-3 py-2 text-center tabular-nums text-slate-950">
-                              {Number(row.sales_qty).toFixed(0)}
+                            <td className="px-3 py-2 text-center tabular-nums">
+                              {hasSal
+                                ? <span className="font-semibold text-rose-700">{Number(row.sales_qty).toFixed(0)}</span>
+                                : <span className="text-slate-400">—</span>}
                             </td>
-                            <td className="px-3 py-2 text-center tabular-nums text-slate-950">
+                            <td className="px-3 py-2 text-center tabular-nums font-semibold text-slate-950">
                               {Number(row.closing_balance).toFixed(0)}
                             </td>
                           </tr>
                         );
                       })}
                       <tr className="bg-slate-900 font-semibold text-slate-100">
-                        <td colSpan={4} className="px-3 py-2 text-right text-xs uppercase tracking-wide">Total</td>
+                        <td colSpan={2} className="px-3 py-2 text-right text-xs uppercase tracking-wide">Total / Closing</td>
                         <td className="px-3 py-2" />
-                        <td className="px-3 py-2 text-center tabular-nums">{totalPur.toFixed(0)}</td>
-                        <td className="px-3 py-2 text-center tabular-nums">{totalSal.toFixed(0)}</td>
-                        <td className="px-3 py-2 text-center tabular-nums">{totalClosing.toFixed(0)}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-emerald-300">{totalPur.toFixed(0)}</td>
+                        <td className="px-3 py-2 text-center tabular-nums text-rose-300">{totalSal.toFixed(0)}</td>
+                        <td className="px-3 py-2 text-center tabular-nums">
+                          {lastRow ? Number(lastRow.closing_balance).toFixed(0) : "—"}
+                        </td>
                       </tr>
                     </>
                   )}

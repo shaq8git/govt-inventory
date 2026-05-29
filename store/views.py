@@ -662,64 +662,75 @@ class PurchaseSalesReportView(APIView):
         # Opening balance = stock at end of day before date_from
         opening_cutoff = (date_from - timedelta(days=1)) if date_from else None
 
-        def product_filter(qs):
+        def apply_filter(pur_qs, sal_qs):
             if product_id:
-                return qs.filter(product_id=product_id)
+                return pur_qs.filter(product_id=product_id), sal_qs.filter(product_id=product_id)
             if group_id:
-                return qs.filter(product__productgroup_id=group_id)
-            return qs
+                return pur_qs.filter(product__productgroup_id=group_id), sal_qs.filter(product__productgroup_id=group_id)
+            return pur_qs, sal_qs
 
-        # Quantities IN the date range
-        pur_in = product_filter(PurchaseItem.objects.all())
-        sal_in = product_filter(SalesItem.objects.all())
+        # Daily totals IN the date range
+        pur_in_qs, sal_in_qs = apply_filter(
+            PurchaseItem.objects.select_related("purchasehead"),
+            SalesItem.objects.select_related("saleshead"),
+        )
         if date_from:
-            pur_in = pur_in.filter(purchasehead__invoicedate__gte=date_from)
-            sal_in = sal_in.filter(saleshead__invoicedate__gte=date_from)
+            pur_in_qs = pur_in_qs.filter(purchasehead__invoicedate__gte=date_from)
+            sal_in_qs = sal_in_qs.filter(saleshead__invoicedate__gte=date_from)
         if date_to:
-            pur_in = pur_in.filter(purchasehead__invoicedate__lte=date_to)
-            sal_in = sal_in.filter(saleshead__invoicedate__lte=date_to)
+            pur_in_qs = pur_in_qs.filter(purchasehead__invoicedate__lte=date_to)
+            sal_in_qs = sal_in_qs.filter(saleshead__invoicedate__lte=date_to)
 
-        # Quantities BEFORE the range (to calculate opening balance)
-        if opening_cutoff:
-            pur_before = product_filter(
-                PurchaseItem.objects.filter(purchasehead__invoicedate__lte=opening_cutoff)
-            )
-            sal_before = product_filter(
-                SalesItem.objects.filter(saleshead__invoicedate__lte=opening_cutoff)
-            )
-        else:
-            pur_before = PurchaseItem.objects.none()
-            sal_before = SalesItem.objects.none()
+        pur_by_date = {
+            row["purchasehead__invoicedate"]: row["total"]
+            for row in pur_in_qs.values("purchasehead__invoicedate").annotate(total=Sum("quantity"))
+        }
+        sal_by_date = {
+            row["saleshead__invoicedate"]: row["total"]
+            for row in sal_in_qs.values("saleshead__invoicedate").annotate(total=Sum("quantity"))
+        }
 
-        pur_in_map = {r["product"]: r["total"] for r in pur_in.values("product").annotate(total=Sum("quantity"))}
-        sal_in_map = {r["product"]: r["total"] for r in sal_in.values("product").annotate(total=Sum("quantity"))}
-        pur_before_map = {r["product"]: r["total"] for r in pur_before.values("product").annotate(total=Sum("quantity"))}
-        sal_before_map = {r["product"]: r["total"] for r in sal_before.values("product").annotate(total=Sum("quantity"))}
-
-        product_ids = set(pur_in_map) | set(sal_in_map)
-        if not product_ids:
+        all_dates = sorted(set(pur_by_date) | set(sal_by_date))
+        if not all_dates:
             return Response([])
 
-        products_qs = Product.objects.select_related("productgroup").filter(id__in=product_ids)
+        # Totals BEFORE the range (for opening balance)
+        if opening_cutoff:
+            pur_b_qs, sal_b_qs = apply_filter(
+                PurchaseItem.objects.filter(purchasehead__invoicedate__lte=opening_cutoff),
+                SalesItem.objects.filter(saleshead__invoicedate__lte=opening_cutoff),
+            )
+            pb = pur_b_qs.aggregate(t=Sum("quantity"))["t"] or Decimal("0")
+            sb = sal_b_qs.aggregate(t=Sum("quantity"))["t"] or Decimal("0")
+        else:
+            pb = sb = Decimal("0")
 
+        # Initial stock (openqty) for the selected scope
+        if product_id:
+            try:
+                initial = Decimal(Product.objects.get(id=product_id).openqty)
+            except Product.DoesNotExist:
+                initial = Decimal("0")
+        elif group_id:
+            initial = Product.objects.filter(productgroup_id=group_id).aggregate(
+                t=Sum("openqty"))["t"] or Decimal("0")
+        else:
+            initial = Decimal("0")
+
+        # Build day-by-day ledger with running balance
+        running = initial + pb - sb
         result = []
-        for prod in products_qs.order_by("productgroup__groupname", "productname"):
-            pur_qty = pur_in_map.get(prod.id, Decimal("0"))
-            sal_qty = sal_in_map.get(prod.id, Decimal("0"))
-            pur_before_qty = pur_before_map.get(prod.id, Decimal("0"))
-            sal_before_qty = sal_before_map.get(prod.id, Decimal("0"))
-            # opening = initial openqty + all purchases before range - all sales before range
-            opening = Decimal(prod.openqty) + pur_before_qty - sal_before_qty
-            closing = opening + pur_qty - sal_qty
+        for d in all_dates:
+            pur = pur_by_date.get(d, Decimal("0"))
+            sal = sal_by_date.get(d, Decimal("0"))
+            closing = running + pur - sal
             result.append({
-                "product_id": prod.id,
-                "product_code": prod.prodcode,
-                "product_name": prod.productname,
-                "product_group": prod.productgroup.groupname,
-                "opening_balance": str(opening),
-                "purchase_qty": str(pur_qty),
-                "sales_qty": str(sal_qty),
+                "date": str(d),
+                "opening_balance": str(running),
+                "purchase_qty": str(pur),
+                "sales_qty": str(sal),
                 "closing_balance": str(closing),
             })
+            running = closing
 
         return Response(result)
