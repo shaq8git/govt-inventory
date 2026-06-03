@@ -1066,7 +1066,8 @@ class DamageItem(models.Model):
 
 class RequisitionHead(models.Model):
     customer = models.ForeignKey(
-        Customer, on_delete=models.PROTECT, related_name="requisition_heads"
+        Customer, on_delete=models.PROTECT, related_name="requisition_heads",
+        null=True, blank=True
     )
     vouchercode = models.ForeignKey(
         VoucherCode, on_delete=models.PROTECT, related_name="requisition_heads",

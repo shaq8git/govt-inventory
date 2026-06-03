@@ -21,6 +21,8 @@ import Damage from "./components/Damage.jsx";
 import PurchaseReport from "./components/PurchaseReport.jsx";
 import DailyPurchaseInvoice from "./components/DailyPurchaseInvoice.jsx";
 import DailyPurchaseSummary from "./components/DailyPurchaseSummary.jsx";
+import Requisition from "./components/Requisition.jsx";
+import RequisitionList from "./components/RequisitionList.jsx";
 import SalesReport from "./components/SalesReport.jsx";
 import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
 import DailySalesSummary from "./components/DailySalesSummary.jsx";
@@ -267,6 +269,8 @@ const menuGroups = [
       { id: "purchase-returns", label: "Purchase Returns", icon: IconTruck },
       { id: "sales-returns", label: "Sales Returns", icon: IconTruck },
       { id: "damage", label: "Damage", icon: IconTruck },
+      { id: "requisition", label: "Requisition", icon: IconClipboard },
+      { id: "requisition-list", label: "Requisition List", icon: IconClipboard },
       { id: "purchase-planning", label: "Purchase Planning", icon: IconChart },
     ],
   },
@@ -378,6 +382,10 @@ function renderContent(page, handlers) {
       return <SalesReturns />;
     case "damage":
       return <Damage />;
+    case "requisition":
+      return <Requisition />;
+    case "requisition-list":
+      return <RequisitionList />;
     case "purchase-report":
       return <PurchaseReport />;
     case "daily-purchase-invoice":

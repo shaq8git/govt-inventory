@@ -1011,11 +1011,17 @@ class RequisitionHeadSerializer(serializers.ModelSerializer):
             "customer", "customer_name",
             "vouchercode", "vouchercode_short",
             "monthlist", "yearlist",
+            "cruser_id", "upduser_id",
             "created_at", "updated_at", "items",
         ]
 
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
+        # Auto-assign RQ vouchercode if not provided
+        if not validated_data.get("vouchercode"):
+            from .models import VoucherCode as _VC
+            rq, _ = _VC.objects.get_or_create(shortname="RQ", defaults={"description": "Requisition"})
+            validated_data["vouchercode"] = rq
         head = RequisitionHead.objects.create(**validated_data)
         for item_data in items_data:
             RequisitionItem.objects.create(requisitionhead=head, **item_data)
@@ -1036,12 +1042,24 @@ class RequisitionHeadSerializer(serializers.ModelSerializer):
 class RequisitionHeadListSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.costname", read_only=True)
     items_count = serializers.IntegerField(source="items.count", read_only=True)
+    cruser_name = serializers.SerializerMethodField()
+
+    def get_cruser_name(self, obj):
+        if obj.cruser_id:
+            try:
+                u = User.objects.get(pk=obj.cruser_id)
+                return u.get_full_name() or u.username
+            except User.DoesNotExist:
+                return f"User #{obj.cruser_id}"
+        return ""
 
     class Meta:
         model = RequisitionHead
         fields = [
             "id", "requisitionno", "requisitiondate", "remark",
-            "customer", "customer_name", "items_count", "created_at",
+            "customer", "customer_name",
+            "cruser_id", "cruser_name", "upduser_id",
+            "items_count", "created_at",
         ]
 
 
