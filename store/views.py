@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum, Count, Q
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem, RequisitionHead, RequisitionItem, BudgetHead, BudgetItem
 from .serializers import (
     CategorySerializer,
     CircleOfficeSerializer,
@@ -58,6 +58,12 @@ from .serializers import (
     DamageHeadSerializer,
     DamageHeadListSerializer,
     DamageItemCreateSerializer,
+    RequisitionHeadSerializer,
+    RequisitionHeadListSerializer,
+    RequisitionItemCreateSerializer,
+    BudgetHeadSerializer,
+    BudgetHeadListSerializer,
+    BudgetItemCreateSerializer,
 )
 
 User = get_user_model()
@@ -516,6 +522,62 @@ class DamageHeadViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return DamageHeadListSerializer
         return DamageHeadSerializer
+
+
+class RequisitionItemViewSet(viewsets.ModelViewSet):
+    queryset = RequisitionItem.objects.select_related("product", "requisitionhead").all()
+    serializer_class = RequisitionItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["requisitionhead"]
+
+
+class RequisitionHeadViewSet(viewsets.ModelViewSet):
+    queryset = RequisitionHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["requisitionno", "customer__costname"]
+    filterset_fields = {
+        "customer": ["exact"],
+        "monthlist": ["exact"],
+        "yearlist": ["exact"],
+        "requisitiondate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return RequisitionHeadListSerializer
+        return RequisitionHeadSerializer
+
+
+class BudgetItemViewSet(viewsets.ModelViewSet):
+    queryset = BudgetItem.objects.select_related("product", "budgethead").all()
+    serializer_class = BudgetItemCreateSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["budgethead"]
+
+
+class BudgetHeadViewSet(viewsets.ModelViewSet):
+    queryset = BudgetHead.objects.select_related("customer", "vouchercode", "monthlist", "yearlist").prefetch_related("items__product").all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["budgetno", "customer__costname"]
+    filterset_fields = {
+        "customer": ["exact"],
+        "monthlist": ["exact"],
+        "yearlist": ["exact"],
+        "budgetdate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return BudgetHeadListSerializer
+        return BudgetHeadSerializer
 
 
 class IssuanceRecordViewSet(viewsets.ModelViewSet):

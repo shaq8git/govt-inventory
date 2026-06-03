@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem
+from .models import Category, StockItem, Department, IssuanceRecord, IssuanceLine, UserRole, CircleOffice, DistrictOffice, Office, HeadOffice, Designation, ProductGroup, Mfccompany, Product, MonthCycle, Unit, MonthList, YearList, Status, VoucherCode, Supplier, PurchaseHead, PurchaseItem, Desk, PurRetHead, PurRetItem, Customer, SalesHead, SalesItem, SlRetHead, SlRetItem, ReplaceHead, ReplaceItem, TransferHead, TransferItem, DamageHead, DamageItem, RequisitionHead, RequisitionItem, BudgetHead, BudgetItem
 
 User = get_user_model()
 
@@ -975,4 +975,139 @@ class DamageHeadListSerializer(serializers.ModelSerializer):
             "id", "invoiceno", "invoicedate", "remark",
             "customer", "customer_name",
             "items_count", "created_at",
+        ]
+
+
+# ── Requisition ───────────────────────────────────────────────────────────────
+
+class RequisitionItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = RequisitionItem
+        fields = [
+            "id", "product", "product_name", "product_code",
+            "primquantity", "reqquantity",
+            "requserinfo_id", "approveuserinfo_id", "approvflag", "approvdate",
+        ]
+
+
+class RequisitionItemCreateSerializer(RequisitionItemSerializer):
+    class Meta(RequisitionItemSerializer.Meta):
+        fields = ["id", "requisitionhead"] + RequisitionItemSerializer.Meta.fields[1:]
+
+
+class RequisitionHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = RequisitionItemSerializer(many=True, required=False, default=[])
+    requisitionno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = RequisitionHead
+        fields = [
+            "id", "requisitionno", "requisitiondate", "remark",
+            "customer", "customer_name",
+            "vouchercode", "vouchercode_short",
+            "monthlist", "yearlist",
+            "created_at", "updated_at", "items",
+        ]
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items", [])
+        head = RequisitionHead.objects.create(**validated_data)
+        for item_data in items_data:
+            RequisitionItem.objects.create(requisitionhead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                RequisitionItem.objects.create(requisitionhead=instance, **item_data)
+        return instance
+
+
+class RequisitionHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = RequisitionHead
+        fields = [
+            "id", "requisitionno", "requisitiondate", "remark",
+            "customer", "customer_name", "items_count", "created_at",
+        ]
+
+
+# ── Budget ────────────────────────────────────────────────────────────────────
+
+class BudgetItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+
+    class Meta:
+        model = BudgetItem
+        fields = [
+            "id", "product", "product_name", "product_code",
+            "primquantity", "primpurrate",
+            "bdgquantity", "bdgpurrate",
+            "bdguserinfo_id", "approveuserinfo_id", "approvflag", "approvdate",
+        ]
+
+
+class BudgetItemCreateSerializer(BudgetItemSerializer):
+    class Meta(BudgetItemSerializer.Meta):
+        fields = ["id", "budgethead"] + BudgetItemSerializer.Meta.fields[1:]
+
+
+class BudgetHeadSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    vouchercode_short = serializers.CharField(source="vouchercode.shortname", read_only=True, default=None)
+    items = BudgetItemSerializer(many=True, required=False, default=[])
+    budgetno = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = BudgetHead
+        fields = [
+            "id", "budgetno", "budgetdate", "remark",
+            "customer", "customer_name",
+            "vouchercode", "vouchercode_short",
+            "monthlist", "yearlist",
+            "created_at", "updated_at", "items",
+        ]
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items", [])
+        head = BudgetHead.objects.create(**validated_data)
+        for item_data in items_data:
+            BudgetItem.objects.create(budgethead=head, **item_data)
+        return head
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop("items", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                BudgetItem.objects.create(budgethead=instance, **item_data)
+        return instance
+
+
+class BudgetHeadListSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.costname", read_only=True)
+    items_count = serializers.IntegerField(source="items.count", read_only=True)
+
+    class Meta:
+        model = BudgetHead
+        fields = [
+            "id", "budgetno", "budgetdate", "remark",
+            "customer", "customer_name", "items_count", "created_at",
         ]

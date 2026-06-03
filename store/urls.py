@@ -39,6 +39,10 @@ from .views import (
     TransferItemViewSet,
     DamageHeadViewSet,
     DamageItemViewSet,
+    RequisitionHeadViewSet,
+    RequisitionItemViewSet,
+    BudgetHeadViewSet,
+    BudgetItemViewSet,
     PurchaseSummaryView,
     SalesSummaryView,
     PurchaseSalesReportView,
@@ -82,6 +86,10 @@ router.register(r"transfer-heads", TransferHeadViewSet)
 router.register(r"transfer-items", TransferItemViewSet)
 router.register(r"damage-heads", DamageHeadViewSet)
 router.register(r"damage-items", DamageItemViewSet)
+router.register(r"requisition-heads", RequisitionHeadViewSet)
+router.register(r"requisition-items", RequisitionItemViewSet)
+router.register(r"budget-heads", BudgetHeadViewSet)
+router.register(r"budget-items", BudgetItemViewSet)
 
 urlpatterns = router.urls + [
     path("purchase-summary/", PurchaseSummaryView.as_view(), name="purchase-summary"),

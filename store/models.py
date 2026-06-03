@@ -1062,3 +1062,161 @@ class DamageItem(models.Model):
 
     def __str__(self):
         return f"{self.damagehead.invoiceno} — {self.product.productname}"
+
+
+class RequisitionHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="requisition_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="requisition_heads",
+        null=True, blank=True
+    )
+    requisitionno = models.CharField(max_length=20, blank=True)
+    requisitiondate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="requisition_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="requisition_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "requisitionhead"
+        ordering = ["-requisitiondate", "requisitionno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.requisitionno:
+            from datetime import date as _date
+            ref = self.requisitiondate if self.requisitiondate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                RequisitionHead.objects
+                .filter(requisitionno__startswith=prefix)
+                .order_by("-requisitionno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.requisitionno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.requisitionno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.requisitionno
+
+
+class RequisitionItem(models.Model):
+    requisitionhead = models.ForeignKey(
+        RequisitionHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="requisition_items"
+    )
+    primquantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    reqquantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    requserinfo_id = models.IntegerField(default=0)
+    approveuserinfo_id = models.IntegerField(default=0)
+    approvflag = models.SmallIntegerField(default=0)
+    approvdate = models.DateField(null=True, blank=True)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "requisitionitem"
+        ordering = ["product__productname"]
+
+    def __str__(self):
+        return f"{self.requisitionhead.requisitionno} — {self.product.productname}"
+
+
+class BudgetHead(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="budget_heads"
+    )
+    vouchercode = models.ForeignKey(
+        VoucherCode, on_delete=models.PROTECT, related_name="budget_heads",
+        null=True, blank=True
+    )
+    budgetno = models.CharField(max_length=20, blank=True)
+    budgetdate = models.DateField(null=True, blank=True)
+    remark = models.CharField(max_length=200, blank=True, null=True)
+    monthlist = models.ForeignKey(
+        MonthList, on_delete=models.PROTECT, related_name="budget_heads",
+        null=True, blank=True
+    )
+    yearlist = models.ForeignKey(
+        YearList, on_delete=models.PROTECT, related_name="budget_heads",
+        null=True, blank=True
+    )
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "budgethead"
+        ordering = ["-budgetdate", "budgetno"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.budgetno:
+            from datetime import date as _date
+            ref = self.budgetdate if self.budgetdate else _date.today()
+            prefix = ref.strftime("%Y%m%d")
+            last = (
+                BudgetHead.objects
+                .filter(budgetno__startswith=prefix)
+                .order_by("-budgetno")
+                .first()
+            )
+            seq = 1
+            if last:
+                try:
+                    seq = int(last.budgetno[8:]) + 1
+                except (ValueError, IndexError):
+                    seq = 1
+            self.budgetno = f"{prefix}{seq:03d}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.budgetno
+
+
+class BudgetItem(models.Model):
+    budgethead = models.ForeignKey(
+        BudgetHead, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.PROTECT, related_name="budget_items"
+    )
+    primquantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    primpurrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bdgquantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bdgpurrate = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    bdguserinfo_id = models.IntegerField(default=0)
+    approveuserinfo_id = models.IntegerField(default=0)
+    approvflag = models.SmallIntegerField(default=0)
+    approvdate = models.DateField(null=True, blank=True)
+    cruser_id = models.IntegerField(default=0)
+    upduser_id = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "budgetitem"
+        ordering = ["product__productname"]
+
+    def __str__(self):
+        return f"{self.budgethead.budgetno} — {self.product.productname}"
