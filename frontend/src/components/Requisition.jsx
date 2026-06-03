@@ -11,10 +11,10 @@ const currentUser = () => {
   catch { return {}; }
 };
 
-const emptyRow = (id) => ({ id, product_id: "", product_name: "", product_code: "", group_id: "", quantity: "" });
-
 export default function Requisition() {
   const user = currentUser();
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
   const [groups, setGroups] = useState([]);
   const [products, setProducts] = useState([]);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -28,6 +28,9 @@ export default function Requisition() {
   const nextId = useRef(1);
 
   useEffect(() => {
+    fetch(`${API}/customers/`, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => setCustomers(Array.isArray(d) ? d : (d.results ?? [])));
     fetch(`${API}/product-groups/`, { headers: authHeaders() })
       .then((r) => r.json())
       .then((d) => setGroups(Array.isArray(d) ? d : (d.results ?? [])));
@@ -73,6 +76,7 @@ export default function Requisition() {
   }
 
   async function handleSubmit() {
+    if (!selectedCustomer) { setError("Select a customer."); return; }
     if (!date) { setError("Select a date."); return; }
     if (rows.length === 0) { setError("Add at least one product."); return; }
     setError("");
@@ -82,6 +86,7 @@ export default function Requisition() {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
+          customer: Number(selectedCustomer),
           requisitiondate: date,
           cruser_id: user.id ?? 0,
           items: rows.map((r) => ({
@@ -118,19 +123,21 @@ export default function Requisition() {
 
       <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6">
 
-        {/* Requester info + date */}
+        {/* Customer + date */}
         <div className="rounded-lg border border-slate-200 bg-white px-6 py-5 shadow-sm">
-          <div className="flex flex-wrap items-end gap-6">
-            <div className="flex-1 min-w-56">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Requester</p>
-              <p className="mt-1 text-base font-semibold text-slate-900">
-                {user.first_name || user.last_name
-                  ? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()
-                  : user.username ?? "—"}
-              </p>
-              {user.designation && (
-                <p className="text-xs text-slate-500">{user.designation}</p>
-              )}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-slate-700">Customer</label>
+              <select
+                value={selectedCustomer}
+                onChange={(e) => setSelectedCustomer(e.target.value)}
+                className={`${inputCls} w-72`}
+              >
+                <option value="">-- Select Customer --</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.costname}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-slate-700">Date</label>

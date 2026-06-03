@@ -143,7 +143,7 @@ export default function RequisitionList() {
                       <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                       <td className="px-3 py-2 font-mono tabular-nums text-slate-950">{h.requisitiondate}</td>
                       <td className="px-3 py-2 font-mono font-semibold text-slate-950">{h.requisitionno}</td>
-                      <td className="px-3 py-2 text-slate-950">{h.cruser_name || `User #${h.cruser_id}`}</td>
+                      <td className="px-3 py-2 text-slate-950">{h.customer_name ?? "—"}</td>
                       <td className="px-3 py-2 text-center text-slate-950">{h.items_count}</td>
                       <td className="px-3 py-2 text-center">
                         {approved
