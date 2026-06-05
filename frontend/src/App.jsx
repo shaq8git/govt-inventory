@@ -26,7 +26,6 @@ import RequisitionList from "./components/RequisitionList.jsx";
 import ApprovedRequisition from "./components/ApprovedRequisition.jsx";
 import SalesReport from "./components/SalesReport.jsx";
 import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
-import DailySalesSummary from "./components/DailySalesSummary.jsx";
 import PurchaseSalesReport from "./components/PurchaseSalesReport.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
@@ -295,7 +294,6 @@ const menuGroups = [
       { id: "daily-purchase-summary", label: "Daily Purchase Summary", icon: IconClipboard },
       { id: "sales-report", label: "Sales Report", icon: IconClipboard },
       { id: "daily-sales-invoice", label: "Daily Sales Invoice", icon: IconClipboard },
-      { id: "daily-sales-summary", label: "Daily Sales Summary", icon: IconClipboard },
       { id: "purchase-sales-report", label: "Purchase & Sales Report", icon: IconClipboard },
       { id: "approved-requisition", label: "Approved Requisition", icon: IconClipboard },
     ],
@@ -398,8 +396,6 @@ function renderContent(page, handlers) {
       return <SalesReport />;
     case "daily-sales-invoice":
       return <DailySalesInvoice />;
-    case "daily-sales-summary":
-      return <DailySalesSummary />;
     case "purchase-sales-report":
       return <PurchaseSalesReport />;
     case "approved-requisition":
