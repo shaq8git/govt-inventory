@@ -106,8 +106,8 @@ export default function Budget() {
           cruser_id: user.id ?? 0,
           items: rows.map((r) => ({
             product: r.product_id,
-            primquantity: r.current_qty,
-            primpurrate: r.current_rate,
+            primquantity: parseFloat(Number(r.current_qty).toFixed(2)),
+            primpurrate: parseFloat(Number(r.current_rate).toFixed(2)),
             bdgquantity: r.quantity,
             bdgpurrate: r.price,
           })),
