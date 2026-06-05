@@ -231,7 +231,7 @@ export default function Requisition() {
                       <td className="px-3 py-2 text-center">
                         <button
                           onClick={() => removeRow(r.id)}
-                          className="rounded px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                          className="rounded px-2 py-1 text-2xl font-black leading-none text-rose-700 hover:bg-rose-50"
                         >
                           ×
                         </button>
