@@ -56,14 +56,15 @@ export default function Requisition() {
       return;
     }
     setError("");
+    const group = groups.find((g) => String(g.id) === String(prod.productgroup));
     setRows((prev) => [
       ...prev,
       {
         id: nextId.current++,
         product_id: prod.id,
         product_name: prod.productname,
-        product_code: prod.prodcode,
-        group_name: groups.find((g) => String(g.id) === String(prod.productgroup))?.groupname ?? "",
+        product_code: `${group?.groupcode ?? ""}${prod.prodcode}`,
+        group_name: group?.groupname ?? "",
         quantity: Number(quantity),
       },
     ]);
