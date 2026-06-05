@@ -24,6 +24,9 @@ import DailyPurchaseSummary from "./components/DailyPurchaseSummary.jsx";
 import Requisition from "./components/Requisition.jsx";
 import RequisitionList from "./components/RequisitionList.jsx";
 import ApprovedRequisition from "./components/ApprovedRequisition.jsx";
+import Budget from "./components/Budget.jsx";
+import BudgetList from "./components/BudgetList.jsx";
+import ApprovedBudget from "./components/ApprovedBudget.jsx";
 import SalesReport from "./components/SalesReport.jsx";
 import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
 import PurchaseSalesReport from "./components/PurchaseSalesReport.jsx";
@@ -271,6 +274,8 @@ const menuGroups = [
       { id: "damage", label: "Damage", icon: IconTruck },
       { id: "requisition", label: "Requisition", icon: IconClipboard },
       { id: "requisition-list", label: "Requisition List", icon: IconClipboard },
+      { id: "budget", label: "Budget", icon: IconClipboard },
+      { id: "budget-list", label: "Budget List", icon: IconClipboard },
       { id: "purchase-planning", label: "Purchase Planning", icon: IconChart },
     ],
   },
@@ -296,6 +301,7 @@ const menuGroups = [
       { id: "daily-sales-invoice", label: "Daily Sales Invoice", icon: IconClipboard },
       { id: "purchase-sales-report", label: "Purchase & Sales Report", icon: IconClipboard },
       { id: "approved-requisition", label: "Approved Requisition", icon: IconClipboard },
+      { id: "approved-budget", label: "Approved Budget", icon: IconClipboard },
     ],
   },
 ];
@@ -400,6 +406,12 @@ function renderContent(page, handlers) {
       return <PurchaseSalesReport />;
     case "approved-requisition":
       return <ApprovedRequisition />;
+    case "budget":
+      return <Budget />;
+    case "budget-list":
+      return <BudgetList />;
+    case "approved-budget":
+      return <ApprovedBudget />;
     case "purchase-planning":
       return (
         <PlaceholderPage

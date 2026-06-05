@@ -1145,7 +1145,8 @@ class RequisitionItem(models.Model):
 
 class BudgetHead(models.Model):
     customer = models.ForeignKey(
-        Customer, on_delete=models.PROTECT, related_name="budget_heads"
+        Customer, on_delete=models.PROTECT, related_name="budget_heads",
+        null=True, blank=True
     )
     vouchercode = models.ForeignKey(
         VoucherCode, on_delete=models.PROTECT, related_name="budget_heads",

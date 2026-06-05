@@ -1097,11 +1097,16 @@ class BudgetHeadSerializer(serializers.ModelSerializer):
             "customer", "customer_name",
             "vouchercode", "vouchercode_short",
             "monthlist", "yearlist",
+            "cruser_id", "upduser_id",
             "created_at", "updated_at", "items",
         ]
 
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
+        if not validated_data.get("vouchercode"):
+            from .models import VoucherCode as _VC
+            bg, _ = _VC.objects.get_or_create(shortname="BG", defaults={"description": "Budget"})
+            validated_data["vouchercode"] = bg
         head = BudgetHead.objects.create(**validated_data)
         for item_data in items_data:
             BudgetItem.objects.create(budgethead=head, **item_data)
@@ -1122,12 +1127,24 @@ class BudgetHeadSerializer(serializers.ModelSerializer):
 class BudgetHeadListSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.costname", read_only=True)
     items_count = serializers.IntegerField(source="items.count", read_only=True)
+    cruser_name = serializers.SerializerMethodField()
+
+    def get_cruser_name(self, obj):
+        if obj.cruser_id:
+            try:
+                u = User.objects.get(pk=obj.cruser_id)
+                return u.get_full_name() or u.username
+            except User.DoesNotExist:
+                return f"User #{obj.cruser_id}"
+        return ""
 
     class Meta:
         model = BudgetHead
         fields = [
             "id", "budgetno", "budgetdate", "remark",
-            "customer", "customer_name", "items_count", "created_at",
+            "customer", "customer_name",
+            "cruser_id", "cruser_name", "upduser_id",
+            "items_count", "created_at",
         ]
 
 
@@ -1148,4 +1165,26 @@ class ApprovedRequisitionSerializer(serializers.ModelSerializer):
             "id", "requisitionno", "requisitiondate", "customer_name",
             "product", "product_code", "product_name", "product_group",
             "primquantity", "reqquantity", "approvflag", "approvdate",
+        ]
+
+
+class ApprovedBudgetSerializer(serializers.ModelSerializer):
+    budgetno = serializers.CharField(source="budgethead.budgetno", read_only=True)
+    budgetdate = serializers.DateField(source="budgethead.budgetdate", read_only=True)
+    customer_name = serializers.CharField(source="budgethead.customer.costname", read_only=True)
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.SerializerMethodField()
+    product_group = serializers.CharField(source="product.productgroup.groupname", read_only=True)
+
+    def get_product_code(self, obj):
+        return f"{obj.product.productgroup.groupcode}{obj.product.prodcode}"
+
+    class Meta:
+        model = BudgetItem
+        fields = [
+            "id", "budgetno", "budgetdate", "customer_name",
+            "product", "product_code", "product_name", "product_group",
+            "primquantity", "primpurrate",
+            "bdgquantity", "bdgpurrate",
+            "approvflag", "approvdate",
         ]

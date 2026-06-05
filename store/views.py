@@ -62,6 +62,7 @@ from .serializers import (
     RequisitionHeadListSerializer,
     RequisitionItemCreateSerializer,
     ApprovedRequisitionSerializer,
+    ApprovedBudgetSerializer,
     BudgetHeadSerializer,
     BudgetHeadListSerializer,
     BudgetItemCreateSerializer,
@@ -566,12 +567,24 @@ class RequisitionHeadViewSet(viewsets.ModelViewSet):
 
 
 class BudgetItemViewSet(viewsets.ModelViewSet):
-    queryset = BudgetItem.objects.select_related("product", "budgethead").all()
-    serializer_class = BudgetItemCreateSerializer
+    queryset = BudgetItem.objects.select_related(
+        "product__productgroup", "budgethead__customer"
+    ).all()
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["budgethead"]
+    filterset_fields = {
+        "budgethead": ["exact"],
+        "approvflag": ["exact"],
+        "product": ["exact"],
+        "product__productgroup": ["exact"],
+        "budgethead__budgetdate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ApprovedBudgetSerializer
+        return BudgetItemCreateSerializer
 
 
 class BudgetHeadViewSet(viewsets.ModelViewSet):
