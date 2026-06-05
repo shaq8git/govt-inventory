@@ -1136,8 +1136,11 @@ class ApprovedRequisitionSerializer(serializers.ModelSerializer):
     requisitiondate = serializers.DateField(source="requisitionhead.requisitiondate", read_only=True)
     customer_name = serializers.CharField(source="requisitionhead.customer.costname", read_only=True)
     product_name = serializers.CharField(source="product.productname", read_only=True)
-    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+    product_code = serializers.SerializerMethodField()
     product_group = serializers.CharField(source="product.productgroup.groupname", read_only=True)
+
+    def get_product_code(self, obj):
+        return f"{obj.product.productgroup.groupcode}{obj.product.prodcode}"
 
     class Meta:
         model = RequisitionItem
