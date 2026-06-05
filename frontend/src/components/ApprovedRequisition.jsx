@@ -168,7 +168,7 @@ export default function ApprovedRequisition() {
               >
                 <option value="">-- All Groups --</option>
                 {productGroups.map((g) => (
-                  <option key={g.id} value={g.id}>{g.groupname}</option>
+                  <option key={g.id} value={g.id}>{g.groupcode} — {g.groupname}</option>
                 ))}
               </select>
             </div>
