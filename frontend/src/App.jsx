@@ -23,6 +23,7 @@ import DailyPurchaseInvoice from "./components/DailyPurchaseInvoice.jsx";
 import DailyPurchaseSummary from "./components/DailyPurchaseSummary.jsx";
 import Requisition from "./components/Requisition.jsx";
 import RequisitionList from "./components/RequisitionList.jsx";
+import ApprovedRequisition from "./components/ApprovedRequisition.jsx";
 import SalesReport from "./components/SalesReport.jsx";
 import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
 import DailySalesSummary from "./components/DailySalesSummary.jsx";
@@ -296,6 +297,7 @@ const menuGroups = [
       { id: "daily-sales-invoice", label: "Daily Sales Invoice", icon: IconClipboard },
       { id: "daily-sales-summary", label: "Daily Sales Summary", icon: IconClipboard },
       { id: "purchase-sales-report", label: "Purchase & Sales Report", icon: IconClipboard },
+      { id: "approved-requisition", label: "Approved Requisition", icon: IconClipboard },
     ],
   },
 ];
@@ -400,6 +402,8 @@ function renderContent(page, handlers) {
       return <DailySalesSummary />;
     case "purchase-sales-report":
       return <PurchaseSalesReport />;
+    case "approved-requisition":
+      return <ApprovedRequisition />;
     case "purchase-planning":
       return (
         <PlaceholderPage

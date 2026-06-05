@@ -61,6 +61,7 @@ from .serializers import (
     RequisitionHeadSerializer,
     RequisitionHeadListSerializer,
     RequisitionItemCreateSerializer,
+    ApprovedRequisitionSerializer,
     BudgetHeadSerializer,
     BudgetHeadListSerializer,
     BudgetItemCreateSerializer,
@@ -525,12 +526,24 @@ class DamageHeadViewSet(viewsets.ModelViewSet):
 
 
 class RequisitionItemViewSet(viewsets.ModelViewSet):
-    queryset = RequisitionItem.objects.select_related("product", "requisitionhead").all()
-    serializer_class = RequisitionItemCreateSerializer
+    queryset = RequisitionItem.objects.select_related(
+        "product__productgroup", "requisitionhead__customer"
+    ).all()
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["requisitionhead"]
+    filterset_fields = {
+        "requisitionhead": ["exact"],
+        "approvflag": ["exact"],
+        "product": ["exact"],
+        "product__productgroup": ["exact"],
+        "requisitionhead__requisitiondate": ["exact", "gte", "lte"],
+    }
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ApprovedRequisitionSerializer
+        return RequisitionItemCreateSerializer
 
 
 class RequisitionHeadViewSet(viewsets.ModelViewSet):

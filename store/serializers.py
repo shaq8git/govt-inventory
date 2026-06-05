@@ -1129,3 +1129,20 @@ class BudgetHeadListSerializer(serializers.ModelSerializer):
             "id", "budgetno", "budgetdate", "remark",
             "customer", "customer_name", "items_count", "created_at",
         ]
+
+
+class ApprovedRequisitionSerializer(serializers.ModelSerializer):
+    requisitionno = serializers.CharField(source="requisitionhead.requisitionno", read_only=True)
+    requisitiondate = serializers.DateField(source="requisitionhead.requisitiondate", read_only=True)
+    customer_name = serializers.CharField(source="requisitionhead.customer.costname", read_only=True)
+    product_name = serializers.CharField(source="product.productname", read_only=True)
+    product_code = serializers.IntegerField(source="product.prodcode", read_only=True)
+    product_group = serializers.CharField(source="product.productgroup.groupname", read_only=True)
+
+    class Meta:
+        model = RequisitionItem
+        fields = [
+            "id", "requisitionno", "requisitiondate", "customer_name",
+            "product", "product_code", "product_name", "product_group",
+            "primquantity", "reqquantity", "approvflag", "approvdate",
+        ]

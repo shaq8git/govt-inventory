@@ -127,11 +127,11 @@ export default function RequisitionList() {
                 </tr>
               </thead>
               <tbody>
-                {heads.length === 0 ? (
+                {heads.filter((h) => !h.upduser_id || h.upduser_id === 0).length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm text-slate-400">No requisitions found.</td>
+                    <td colSpan={7} className="py-8 text-center text-sm text-slate-400">No pending requisitions.</td>
                   </tr>
-                ) : heads.map((h, idx) => {
+                ) : heads.filter((h) => !h.upduser_id || h.upduser_id === 0).map((h, idx) => {
                   const isDark = idx % 2 === 0;
                   const isSelected = selectedHead?.id === h.id;
                   const approved = h.upduser_id > 0;
