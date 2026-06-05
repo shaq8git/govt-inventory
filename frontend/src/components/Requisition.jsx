@@ -164,7 +164,7 @@ export default function Requisition() {
               >
                 <option value="">-- All Groups --</option>
                 {groups.map((g) => (
-                  <option key={g.id} value={g.id}>{g.groupname}</option>
+                  <option key={g.id} value={g.id}>{g.groupcode} — {g.groupname}</option>
                 ))}
               </select>
             </div>
