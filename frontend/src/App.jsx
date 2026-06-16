@@ -601,7 +601,7 @@ export default function App() {
             <img
               src="/images/govLogo3.webp"
               alt="Government logo"
-              className="h-[104px] w-full object-contain"
+              className="h-[80px] w-full object-contain"
             />
 
             <nav className="mt-6 flex-1 space-y-3 overflow-y-auto">
@@ -635,10 +635,7 @@ export default function App() {
                         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-cyan-300">
                           <GroupIcon className="h-5 w-5" />
                         </span>
-                        <span>
-                          <span className="block text-sm font-semibold text-white">{group.label}</span>
-                          <span className="block text-xs text-slate-400">{group.items.length} items</span>
-                        </span>
+                        <span className="text-sm font-semibold text-white">{group.label}</span>
                       </span>
                       <span className="text-slate-400">
                         <IconChevron open={isOpen} />
@@ -689,7 +686,7 @@ export default function App() {
                   <IconMenu />
                 </button>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-cyan-700">Government of Bangladesh</p>
+                  <p className="text-[11px] font-semibold text-cyan-700">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</p>
                   <h1 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
                     Directorate of Education Engineering
                   </h1>

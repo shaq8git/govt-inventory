@@ -51,7 +51,7 @@ export default function LoginPage({ onLogin }) {
             className="mx-auto h-20 object-contain"
           />
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-400">
-            Government of Bangladesh
+            গণপ্রজাতন্ত্রী বাংলাদেশ সরকার
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-white">
             Directorate of Education Engineering
