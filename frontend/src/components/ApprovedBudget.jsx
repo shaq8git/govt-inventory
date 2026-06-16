@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPerms } from "../utils/permissions.js";
 
 const API = "/api";
 const token = () => sessionStorage.getItem("storeAuthToken");
@@ -87,6 +88,7 @@ function buildPrintHTML(rows, filters) {
 }
 
 export default function ApprovedBudget() {
+  const perms = getPerms("APPROVED_BUDGET");
   const [productGroups, setProductGroups] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
@@ -189,7 +191,7 @@ export default function ApprovedBudget() {
               <label className="text-sm font-semibold text-slate-700">Date To</label>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={`${inputCls} w-40`} />
             </div>
-            <button onClick={handleGenerate} disabled={loading} className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50">
+            <button onClick={handleGenerate} disabled={loading || !perms.c} className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40">
               {loading ? "Loading…" : "Generate"}
             </button>
             {rows.length > 0 && (

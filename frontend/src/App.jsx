@@ -30,6 +30,9 @@ import ApprovedBudget from "./components/ApprovedBudget.jsx";
 import SalesReport from "./components/SalesReport.jsx";
 import DailySalesInvoice from "./components/DailySalesInvoice.jsx";
 import PurchaseSalesReport from "./components/PurchaseSalesReport.jsx";
+import UserRole from "./components/UserRole.jsx";
+import MenuItemList from "./components/MenuItemList.jsx";
+import UserPermission from "./components/UserPermission.jsx";
 
 function IconMenu({ className = "h-5 w-5" }) {
   return (
@@ -235,6 +238,63 @@ function IconLogin({ className = "h-5 w-5" }) {
   );
 }
 
+const MENU_CODE_MAP = {
+  "head-office":             "HEAD_OFFICE",
+  "circle-office":           "CIRCLE_OFFICE",
+  "district-office":         "DISTRICT_OFFICE",
+  "office":                  "OFFICE",
+  "designation":             "DESIGNATION",
+  "month-cycle":             "MONTH_CYCLE",
+  "product-group":           "PRODUCT_GROUP",
+  "mfc-company":             "MFC_COMPANY",
+  "product-information":     "PRODUCT_INFORMATION",
+  "product-opening-balance": "PRODUCT_OPENING_BAL",
+  "supplier":                "SUPPLIER",
+  "customer":                "CUSTOMER",
+  "stock-register":          "STOCK_REGISTER",
+  "distribution":            "DISTRIBUTION",
+  "purchase-returns":        "PURCHASE_RETURNS",
+  "sales-returns":           "SALES_RETURNS",
+  "damage":                  "DAMAGE",
+  "requisition":             "REQUISITION",
+  "requisition-list":        "REQUISITION_LIST",
+  "budget":                  "BUDGET",
+  "budget-list":             "BUDGET_LIST",
+  "purchase-planning":       "PURCHASE_PLANNING",
+  "user-registration":       "USER_REGISTRATION",
+  "user-role":               "USER_ROLE",
+  "user-permission":         "USER_PERMISSION",
+  "menu-item-list":          "MENU_ITEM_LIST",
+  "purchase-report":         "PURCHASE_REPORT",
+  "daily-purchase-invoice":  "DAILY_PURCHASE_INV",
+  "daily-purchase-summary":  "DAILY_PURCHASE_SUM",
+  "sales-report":            "SALES_REPORT",
+  "daily-sales-invoice":     "DAILY_SALES_INV",
+  "purchase-sales-report":   "PURCHASE_SALES_RPT",
+  "approved-requisition":    "APPROVED_REQUISITION",
+  "approved-budget":         "APPROVED_BUDGET",
+};
+
+function loadPerms() {
+  try { return JSON.parse(localStorage.getItem("userPermissions_v1") || "{}"); } catch { return {}; }
+}
+
+function filterMenuGroups(groups, roleName) {
+  if (!roleName) return groups;
+  const perms = loadPerms();
+  const rolePerms = perms[roleName];
+  if (!rolePerms) return groups;
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const code = MENU_CODE_MAP[item.id] || item.id.replace(/-/g, "_").toUpperCase();
+        return rolePerms[code]?.r !== false;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
 const menuGroups = [
   {
     id: "basic",
@@ -287,6 +347,7 @@ const menuGroups = [
       { id: "user-registration", label: "User Registration", icon: IconProfile },
       { id: "user-role", label: "User Role", icon: IconUserCog },
       { id: "user-permission", label: "User Permission", icon: IconShield },
+      { id: "menu-item-list", label: "Menu Item List", icon: IconClipboard },
     ],
   },
   {
@@ -430,31 +491,11 @@ function renderContent(page, handlers) {
     case "user-registration":
       return <UserRegistration onRegistered={handlers.onRegistered} />;
     case "user-role":
-      return (
-        <PlaceholderPage
-          eyebrow="Users"
-          title="User Role"
-          description="Assign responsibilities across store entry, review, approval, and reporting with clear role boundaries."
-          stats={[
-            { label: "Roles", value: "06", detail: "Configured role definitions." },
-            { label: "Mapped", value: "21", detail: "Users assigned to at least one role." },
-            { label: "Review", value: "02", detail: "Roles waiting for policy review." },
-          ]}
-        />
-      );
+      return <UserRole />;
+    case "menu-item-list":
+      return <MenuItemList />;
     case "user-permission":
-      return (
-        <PlaceholderPage
-          eyebrow="Users"
-          title="User Permission"
-          description="Fine-tune access to stock setup, transactions, and approval actions from a single permission workspace."
-          stats={[
-            { label: "Policies", value: "18", detail: "Permission rules currently enforced." },
-            { label: "Critical", value: "04", detail: "Restricted actions requiring approval." },
-            { label: "Audit", value: "Clean", detail: "No permission conflicts flagged." },
-          ]}
-        />
-      );
+      return <UserPermission />;
     default:
       return null;
   }
@@ -579,7 +620,7 @@ export default function App() {
                 <span className="font-semibold">Dashboard</span>
               </button>
 
-              {menuGroups.map((group) => {
+              {filterMenuGroups(menuGroups, authUser?.userrole?.rolename).map((group) => {
                 const GroupIcon = group.icon;
                 const isOpen = openMenus[group.id];
 

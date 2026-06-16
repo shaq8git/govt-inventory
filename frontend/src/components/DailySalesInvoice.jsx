@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPerms } from "../utils/permissions.js";
 
 const API = "/api";
 const token = () => sessionStorage.getItem("storeAuthToken");
@@ -220,6 +221,7 @@ function InvoiceModal({ head, onClose }) {
 }
 
 export default function DailySalesInvoice() {
+  const perms = getPerms("DAILY_SALES_INV");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [heads, setHeads] = useState([]);
@@ -271,8 +273,8 @@ export default function DailySalesInvoice() {
             </div>
             <button
               onClick={handleGenerate}
-              disabled={loading}
-              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50"
+              disabled={loading || !perms.c}
+              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Loading…" : "Generate"}
             </button>

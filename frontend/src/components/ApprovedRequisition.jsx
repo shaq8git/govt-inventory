@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPerms } from "../utils/permissions.js";
 
 const API = "/api";
 const token = () => sessionStorage.getItem("storeAuthToken");
@@ -80,6 +81,7 @@ function buildPrintHTML(rows, filters) {
 }
 
 export default function ApprovedRequisition() {
+  const perms = getPerms("APPROVED_REQUISITION");
   const [productGroups, setProductGroups] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
@@ -199,8 +201,8 @@ export default function ApprovedRequisition() {
 
             <button
               onClick={handleGenerate}
-              disabled={loading}
-              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50"
+              disabled={loading || !perms.c}
+              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Loading…" : "Generate"}
             </button>

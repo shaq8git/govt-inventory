@@ -3,6 +3,8 @@ import { getPerms } from "../utils/permissions.js";
 
 const ITEMS_PER_PAGE = 8;
 
+const DEFAULT_ROLES = ["System Admin", "Normal User", "Store Admin"];
+
 async function requestJson(url, options) {
   const response = await fetch(url, {
     headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
@@ -21,8 +23,6 @@ function normalizeList(data) {
 
 const inputCls =
   "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200";
-const selectCls =
-  "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 bg-white";
 const labelCls = "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 function SearchIcon({ className = "h-4 w-4" }) {
@@ -71,134 +71,102 @@ function pageNumbers(current, total) {
   return [...pages].sort((a, b) => a - b);
 }
 
-const emptyForm = {
-  cyclename: "",
-  month: "",
-  year: "",
-  startdate: "",
-  enddate: "",
-};
+const COLS = ["#", "Role Name", "Edit"];
 
-export default function MonthCycle() {
-  const perms = getPerms("MONTH_CYCLE");
-  const [cycles, setCycles] = useState([]);
-  const [monthList, setMonthList] = useState([]);
-  const [yearList, setYearList] = useState([]);
+export default function UserRole() {
+  const perms = getPerms("USER_ROLE");
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingCycle, setEditingCycle] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [editingRole, setEditingRole] = useState(null);
+  const [editName, setEditName] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editFormError, setEditFormError] = useState("");
 
-  useEffect(() => {
-    loadCycles("");
-    loadDropdowns();
-  }, []);
+  useEffect(() => { initRoles(); }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      loadCycles(searchInput);
+      loadRoles(searchInput);
       setCurrentPage(1);
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  async function loadCycles(q) {
+  async function initRoles() {
+    setLoading(true);
+    try {
+      const data = await requestJson("/api/userroles/");
+      const existing = normalizeList(data).map((r) => r.rolename);
+      const missing = DEFAULT_ROLES.filter((r) => !existing.includes(r));
+      await Promise.all(
+        missing.map((rolename) =>
+          requestJson("/api/userroles/", { method: "POST", body: JSON.stringify({ rolename }) })
+        )
+      );
+    } catch {
+      // ignore seed errors
+    }
+    loadRoles("");
+  }
+
+  async function loadRoles(q) {
     setLoading(true);
     try {
       const qs = q ? `?search=${encodeURIComponent(q)}` : "";
-      const data = await requestJson(`/api/month-cycles/${qs}`);
-      setCycles(normalizeList(data));
+      const data = await requestJson(`/api/userroles/${qs}`);
+      setRoles(normalizeList(data));
     } catch {
-      setCycles([]);
+      setRoles([]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadDropdowns() {
-    try {
-      const [months, years] = await Promise.all([
-        requestJson("/api/month-list/"),
-        requestJson("/api/year-list/"),
-      ]);
-      setMonthList(normalizeList(months));
-      setYearList(normalizeList(years));
-    } catch {
-      // dropdowns stay empty
-    }
-  }
-
-  const totalPages = Math.max(1, Math.ceil(cycles.length / ITEMS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(roles.length / ITEMS_PER_PAGE));
   const safePage = Math.min(currentPage, totalPages);
-  const paged = cycles.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+  const paged = roles.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
   function openModal() {
-    setForm(emptyForm);
+    setName("");
     setFormError("");
     setModalOpen(true);
   }
 
   function closeModal() { setModalOpen(false); }
 
-  function updateForm(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
-
-  function openEditModal(cycle) {
-    setEditingCycle(cycle);
-    setEditForm({
-      cyclename: cycle.cyclename || "",
-      month: cycle.month ?? "",
-      year: cycle.year ?? "",
-      startdate: cycle.startdate || "",
-      enddate: cycle.enddate || "",
-    });
+  function openEditModal(r) {
+    setEditingRole(r);
+    setEditName(r.rolename || "");
     setEditFormError("");
     setEditModalOpen(true);
   }
 
   function closeEditModal() {
     setEditModalOpen(false);
-    setEditingCycle(null);
-  }
-
-  function updateEditForm(field, value) {
-    setEditForm((f) => ({ ...f, [field]: value }));
-  }
-
-  function calcDays(start, end) {
-    if (!start || !end) return null;
-    const diff = (new Date(end) - new Date(start)) / 86400000;
-    return diff >= 0 ? diff + 1 : null;
+    setEditingRole(null);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.cyclename.trim()) { setFormError("Cycle name is required."); return; }
+    if (!name.trim()) { setFormError("Role name is required."); return; }
     setSaving(true);
     setFormError("");
     try {
-      await requestJson("/api/month-cycles/", {
+      await requestJson("/api/userroles/", {
         method: "POST",
-        body: JSON.stringify({
-          cyclename: form.cyclename.trim(),
-          month: form.month ? Number(form.month) : null,
-          year: form.year ? Number(form.year) : null,
-          startdate: form.startdate || null,
-          enddate: form.enddate || null,
-        }),
+        body: JSON.stringify({ rolename: name.trim() }),
       });
       closeModal();
-      loadCycles(searchInput);
+      loadRoles(searchInput);
     } catch {
       setFormError("Failed to save. Please try again.");
     } finally {
@@ -208,22 +176,16 @@ export default function MonthCycle() {
 
   async function handleEditSubmit(e) {
     e.preventDefault();
-    if (!editForm.cyclename.trim()) { setEditFormError("Cycle name is required."); return; }
+    if (!editName.trim()) { setEditFormError("Role name is required."); return; }
     setEditSaving(true);
     setEditFormError("");
     try {
-      await requestJson(`/api/month-cycles/${editingCycle.id}/`, {
+      await requestJson(`/api/userroles/${editingRole.id}/`, {
         method: "PATCH",
-        body: JSON.stringify({
-          cyclename: editForm.cyclename.trim(),
-          month: editForm.month ? Number(editForm.month) : null,
-          year: editForm.year ? Number(editForm.year) : null,
-          startdate: editForm.startdate || null,
-          enddate: editForm.enddate || null,
-        }),
+        body: JSON.stringify({ rolename: editName.trim() }),
       });
       closeEditModal();
-      loadCycles(searchInput);
+      loadRoles(searchInput);
     } catch {
       setEditFormError("Failed to update. Please try again.");
     } finally {
@@ -237,7 +199,7 @@ export default function MonthCycle() {
       {/* Page header */}
       <section className="border-b border-slate-200 bg-[#f4f6f8]">
         <div className="mx-auto max-w-6xl px-4 pt-3 pb-2 sm:px-6 lg:px-8">
-          <h1 className="text-center text-xl font-semibold text-slate-950">Month Cycle</h1>
+          <h1 className="text-center text-xl font-semibold text-slate-950">User Role</h1>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative flex-1">
               <span
@@ -250,11 +212,10 @@ export default function MonthCycle() {
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by cycle name…"
+                placeholder="Search by role name…"
                 className="h-10 w-full rounded-lg border border-slate-400 bg-slate-200 py-0 pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none placeholder:font-normal placeholder:text-slate-600 transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
               />
             </div>
-
             {searchInput && (
               <button
                 type="button"
@@ -264,7 +225,6 @@ export default function MonthCycle() {
                 Clear
               </button>
             )}
-
             {perms.c && (
               <button
                 type="button"
@@ -285,11 +245,11 @@ export default function MonthCycle() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="sticky top-0 z-10 border-b border-slate-500 bg-gray-500">
-                  {["#", "Cycle Name", "Month", "Year", "Start Date", "End Date", "Days", "Edit"].map((h, i) => (
+                  {COLS.map((h, i) => (
                     <th
                       key={h}
-                      className={`whitespace-nowrap px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-white ${
-                        [0, 2, 3, 6, 7].includes(i) ? "text-center" : "text-left"
+                      className={`whitespace-nowrap px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white ${
+                        i === 0 || i === COLS.length - 1 ? "text-center" : "text-left"
                       }`}
                     >
                       {h}
@@ -300,7 +260,7 @@ export default function MonthCycle() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center text-sm text-slate-400">
+                    <td colSpan={COLS.length} className="px-5 py-16 text-center text-sm text-slate-400">
                       <span className="inline-flex items-center gap-2">
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-600" />
                         Loading…
@@ -309,53 +269,34 @@ export default function MonthCycle() {
                   </tr>
                 ) : paged.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center text-sm text-slate-400">
+                    <td colSpan={COLS.length} className="px-5 py-16 text-center text-sm text-slate-400">
                       {searchInput
-                        ? `No month cycles found for "${searchInput}".`
-                        : "No month cycles added yet."}
+                        ? `No roles found for "${searchInput}".`
+                        : "No roles added yet."}
                     </td>
                   </tr>
                 ) : (
-                  paged.map((c, idx) => {
+                  paged.map((r, idx) => {
                     const rowNum = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
                     const isEven = idx % 2 === 1;
                     return (
                       <tr
-                        key={c.id}
+                        key={r.id}
                         className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-cyan-50/40 ${
                           isEven ? "bg-gray-400" : "bg-white"
                         }`}
                       >
-                        <td className="h-12 px-4 align-middle text-center text-xs font-semibold text-slate-600">
+                        <td className="h-12 px-5 align-middle text-center text-xs font-semibold text-slate-600">
                           {rowNum}
                         </td>
-                        <td className="h-12 px-4 align-middle font-semibold text-slate-950">
-                          {c.cyclename}
+                        <td className="h-12 px-5 align-middle font-semibold text-slate-950">
+                          {r.rolename}
                         </td>
-                        <td className="h-12 px-4 align-middle text-center text-slate-700">
-                          {c.month_name || "—"}
-                        </td>
-                        <td className="h-12 px-4 align-middle text-center text-slate-700">
-                          {c.year_number || "—"}
-                        </td>
-                        <td className="h-12 px-4 align-middle text-slate-700">
-                          {c.startdate || "—"}
-                        </td>
-                        <td className="h-12 px-4 align-middle text-slate-700">
-                          {c.enddate || "—"}
-                        </td>
-                        <td className="h-12 px-4 align-middle text-center">
-                          {c.days != null ? (
-                            <span className="inline-block rounded-full bg-cyan-100 px-2.5 py-0.5 text-xs font-semibold text-cyan-700">
-                              {c.days}d
-                            </span>
-                          ) : "—"}
-                        </td>
-                        <td className="h-12 px-4 align-middle text-center">
+                        <td className="h-12 px-5 align-middle text-center">
                           {perms.u && (
                             <button
                               type="button"
-                              onClick={() => openEditModal(c)}
+                              onClick={() => openEditModal(r)}
                               className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-2 text-rose-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
                               title="Edit"
                             >
@@ -372,17 +313,15 @@ export default function MonthCycle() {
           </div>
 
           {/* Pagination */}
-          {!loading && cycles.length > 0 && (
+          {!loading && roles.length > 0 && (
             <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
               <p className="text-xs text-slate-600">
                 Showing{" "}
                 <span className="font-semibold text-slate-700">
-                  {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, cycles.length)}
+                  {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, roles.length)}
                 </span>{" "}
-                of <span className="font-semibold text-slate-700">{cycles.length}</span> cycles
-                {searchInput && (
-                  <span className="ml-1 text-cyan-600">for "{searchInput}"</span>
-                )}
+                of <span className="font-semibold text-slate-700">{roles.length}</span> roles
+                {searchInput && <span className="ml-1 text-cyan-600">for "{searchInput}"</span>}
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -431,9 +370,9 @@ export default function MonthCycle() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="text-base font-semibold text-slate-950">Add Month Cycle</h2>
+              <h2 className="text-base font-semibold text-slate-950">Add User Role</h2>
               <button
                 type="button"
                 onClick={closeModal}
@@ -443,75 +382,24 @@ export default function MonthCycle() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block sm:col-span-2">
-                  <span className={labelCls}>Cycle Name *</span>
-                  <input
-                    value={form.cyclename}
-                    onChange={(e) => updateForm("cyclename", e.target.value)}
-                    className={inputCls}
-                    placeholder="e.g. January Cycle"
-                    required
-                    autoFocus
-                  />
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Month</span>
-                  <select
-                    value={form.month}
-                    onChange={(e) => updateForm("month", e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">— Select month —</option>
-                    {monthList.map((m) => (
-                      <option key={m.id} value={m.id}>{m.monthname}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Year</span>
-                  <select
-                    value={form.year}
-                    onChange={(e) => updateForm("year", e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">— Select year —</option>
-                    {yearList.map((y) => (
-                      <option key={y.id} value={y.id}>{y.yearnumber}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Start Date</span>
-                  <input
-                    type="date"
-                    value={form.startdate}
-                    onChange={(e) => updateForm("startdate", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-                <label className="block">
-                  <span className={labelCls}>End Date</span>
-                  <input
-                    type="date"
-                    value={form.enddate}
-                    onChange={(e) => updateForm("enddate", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-                {calcDays(form.startdate, form.enddate) != null && (
-                  <div className="sm:col-span-2 rounded-lg bg-cyan-50 border border-cyan-200 px-4 py-2.5 text-sm text-cyan-800">
-                    Duration: <span className="font-semibold">{calcDays(form.startdate, form.enddate)} days</span>
-                  </div>
-                )}
-              </div>
-
+              <label className="block">
+                <span className={labelCls}>Role Name *</span>
+                <input
+                  list="role-suggestions-add"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. System Admin"
+                  required
+                  autoFocus
+                />
+                <datalist id="role-suggestions-add">
+                  {DEFAULT_ROLES.map((r) => <option key={r} value={r} />)}
+                </datalist>
+              </label>
               {formError && (
-                <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {formError}
-                </div>
+                <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</div>
               )}
-
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
@@ -534,15 +422,15 @@ export default function MonthCycle() {
       )}
 
       {/* Edit modal */}
-      {editModalOpen && editingCycle && (
+      {editModalOpen && editingRole && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}
         >
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h2 className="text-base font-semibold text-slate-950">
-                Edit — <span className="text-cyan-700">{editingCycle.cyclename}</span>
+                Edit — <span className="text-cyan-700">{editingRole.rolename}</span>
               </h2>
               <button
                 type="button"
@@ -553,75 +441,23 @@ export default function MonthCycle() {
               </button>
             </div>
             <form onSubmit={handleEditSubmit} className="p-6">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block sm:col-span-2">
-                  <span className={labelCls}>Cycle Name *</span>
-                  <input
-                    value={editForm.cyclename}
-                    onChange={(e) => updateEditForm("cyclename", e.target.value)}
-                    className={inputCls}
-                    placeholder="e.g. January Cycle"
-                    required
-                    autoFocus
-                  />
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Month</span>
-                  <select
-                    value={editForm.month}
-                    onChange={(e) => updateEditForm("month", e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">— Select month —</option>
-                    {monthList.map((m) => (
-                      <option key={m.id} value={m.id}>{m.monthname}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Year</span>
-                  <select
-                    value={editForm.year}
-                    onChange={(e) => updateEditForm("year", e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">— Select year —</option>
-                    {yearList.map((y) => (
-                      <option key={y.id} value={y.id}>{y.yearnumber}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className={labelCls}>Start Date</span>
-                  <input
-                    type="date"
-                    value={editForm.startdate}
-                    onChange={(e) => updateEditForm("startdate", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-                <label className="block">
-                  <span className={labelCls}>End Date</span>
-                  <input
-                    type="date"
-                    value={editForm.enddate}
-                    onChange={(e) => updateEditForm("enddate", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-                {calcDays(editForm.startdate, editForm.enddate) != null && (
-                  <div className="sm:col-span-2 rounded-lg bg-cyan-50 border border-cyan-200 px-4 py-2.5 text-sm text-cyan-800">
-                    Duration: <span className="font-semibold">{calcDays(editForm.startdate, editForm.enddate)} days</span>
-                  </div>
-                )}
-              </div>
-
+              <label className="block">
+                <span className={labelCls}>Role Name *</span>
+                <input
+                  list="role-suggestions-edit"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className={inputCls}
+                  required
+                  autoFocus
+                />
+                <datalist id="role-suggestions-edit">
+                  {DEFAULT_ROLES.map((r) => <option key={r} value={r} />)}
+                </datalist>
+              </label>
               {editFormError && (
-                <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {editFormError}
-                </div>
+                <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">{editFormError}</div>
               )}
-
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"

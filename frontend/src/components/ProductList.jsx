@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPerms } from "../utils/permissions.js";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -79,6 +80,7 @@ const emptyForm = {
 };
 
 export default function ProductList() {
+  const perms = getPerms("PRODUCT_INFORMATION");
   const [products, setProducts] = useState([]);
   const [productGroups, setProductGroups] = useState([]);
   const [mfcCompanies, setMfcCompanies] = useState([]);
@@ -259,13 +261,15 @@ export default function ProductList() {
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={openModal}
-              className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
-            >
-              + Add
-            </button>
+            {perms.c && (
+              <button
+                type="button"
+                onClick={openModal}
+                className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              >
+                + Add
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -335,14 +339,16 @@ export default function ProductList() {
                           {p.mrp != null ? Number(p.mrp).toFixed(2) : "—"}
                         </td>
                         <td className="h-12 px-4 align-middle text-center">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(p)}
-                            className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-2 text-rose-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
-                            title="Edit"
-                          >
-                            <IconEdit className="h-4 w-4" />
-                          </button>
+                          {perms.u && (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(p)}
+                              className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-2 text-rose-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
+                              title="Edit"
+                            >
+                              <IconEdit className="h-4 w-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );

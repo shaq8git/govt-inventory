@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getPerms } from "../utils/permissions.js";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -71,6 +72,7 @@ function pageNumbers(current, total) {
 const COLS = ["#", "Designation Name", "Edit"];
 
 export default function Designation() {
+  const perms = getPerms("DESIGNATION");
   const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
@@ -204,13 +206,15 @@ export default function Designation() {
                 Clear
               </button>
             )}
-            <button
-              type="button"
-              onClick={openModal}
-              className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
-            >
-              + Add
-            </button>
+            {perms.c && (
+              <button
+                type="button"
+                onClick={openModal}
+                className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              >
+                + Add
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -270,14 +274,16 @@ export default function Designation() {
                           {d.designationname}
                         </td>
                         <td className="h-12 px-5 align-middle text-center">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(d)}
-                            className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-2 text-rose-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
-                            title="Edit"
-                          >
-                            <IconEdit className="h-4 w-4" />
-                          </button>
+                          {perms.u && (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(d)}
+                              className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-2 text-rose-500 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
+                              title="Edit"
+                            >
+                              <IconEdit className="h-4 w-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );

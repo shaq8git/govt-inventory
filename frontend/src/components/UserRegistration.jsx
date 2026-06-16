@@ -840,12 +840,18 @@ export default function UserRegistration({ onRegistered }) {
                   ) : (
                     <div className="flex gap-2">
                       <input
+                        list="role-suggestions"
                         value={form.new_userrole}
                         onChange={(e) => updateForm("new_userrole", e.target.value)}
                         className={inputCls}
                         placeholder="New role name"
                         autoFocus
                       />
+                      <datalist id="role-suggestions">
+                        <option value="System Admin" />
+                        <option value="Normal User" />
+                        <option value="Store Admin" />
+                      </datalist>
                       <button type="button" onClick={() => { setUserRoleMode("select"); updateForm("new_userrole", ""); }} className={cancelBtnCls}>Cancel</button>
                     </div>
                   )}
