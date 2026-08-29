@@ -10,9 +10,9 @@ const translations = {
 
   // ── Navigation / Sidebar ──────────────────────────────────────────────────
   "Basic Setup":                              { EN: "Basic Setup",                              BN: "মৌলিক সেটআপ" },
-  "Head Office":                              { EN: "Head Office",                              BN: "প্রধান অফিস" },
-  "Circle Office":                            { EN: "Circle Office",                            BN: "সার্কেল অফিস" },
-  "District Office":                          { EN: "District Office",                          BN: "জেলা অফিস" },
+  "Head Office":                              { EN: "Head Office",                              BN: "প্রধান কার্যালয়" },
+  "Circle Office":                            { EN: "Circle Office",                            BN: "তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয়" },
+  "District Office":                          { EN: "District Office",                          BN: "নির্বাহী প্রকৌশলীর কার্যালয়" },
   "Office":                                   { EN: "Office",                                   BN: "অফিস" },
   "Designation":                              { EN: "Designation",                              BN: "পদবী" },
   "Month Cycle":                              { EN: "Month Cycle",                              BN: "মাসিক চক্র" },
@@ -72,8 +72,11 @@ const translations = {
   "Sign In":                                  { EN: "Sign In",                                  BN: "সাইন ইন" },
   "Username":                                 { EN: "Username",                                 BN: "ব্যবহারকারী নাম" },
   "Password":                                 { EN: "Password",                                 BN: "পাসওয়ার্ড" },
-  "Invalid username or password.":            { EN: "Invalid username or password.",            BN: "অবৈধ ব্যবহারকারী নাম বা পাসওয়ার্ড।" },
+  "Invalid username or password.":            { EN: "Invalid username or password.",            BN: "ব্যবহারকারীর নাম অথবা পাসওয়ার্ড সঠিক হয়নি। আবার চেষ্টা করুন।" },
   "Signing in…":                              { EN: "Signing in…",                              BN: "সাইন ইন হচ্ছে…" },
+  "Stock & Inventory Management System":      { EN: "Stock & Inventory Management System",      BN: "স্টক ও ইনভেন্টরি ব্যবস্থাপনা সিস্টেম" },
+  "Enter your credentials to continue":       { EN: "Enter your credentials to continue",       BN: "চালিয়ে যেতে আপনার তথ্য প্রবেশ করান" },
+  "All rights reserved.":                     { EN: "All rights reserved.",                     BN: "সর্বস্বত্ব সংরক্ষিত।" },
 
   // ── Common Actions / Buttons ──────────────────────────────────────────────
   "Add":                                      { EN: "Add",                                      BN: "যোগ করুন" },
@@ -132,8 +135,8 @@ const translations = {
   "Username *":                               { EN: "Username *",                               BN: "ব্যবহারকারী নাম *" },
   "Full name or username":                    { EN: "Full name or username",                    BN: "পুরো নাম বা ব্যবহারকারী নাম" },
   "Email *":                                  { EN: "Email *",                                  BN: "ইমেইল *" },
-  "-- Select district office --":             { EN: "-- Select district office --",             BN: "-- জেলা অফিস নির্বাচন করুন --" },
-  "Add new district office":                  { EN: "Add new district office",                  BN: "নতুন জেলা অফিস যোগ করুন" },
+  "-- Select district office --":             { EN: "-- Select district office --",             BN: "-- নির্বাহী প্রকৌশলীর কার্যালয় নির্বাচন করুন --" },
+  "Add new district office":                  { EN: "Add new district office",                  BN: "নতুন নির্বাহী প্রকৌশলীর কার্যালয় যোগ করুন" },
   "Office Name":                              { EN: "Office Name",                              BN: "অফিসের নাম" },
   "-- Select office --":                      { EN: "-- Select office --",                      BN: "-- অফিস নির্বাচন করুন --" },
   "Add new office":                           { EN: "Add new office",                           BN: "নতুন অফিস যোগ করুন" },
@@ -167,29 +170,29 @@ const translations = {
   "Edit —":                                   { EN: "Edit —",                                   BN: "সম্পাদনা —" },
 
   // ── Head Office ───────────────────────────────────────────────────────────
-  "No head offices added yet.":               { EN: "No head offices added yet.",               BN: "এখনো কোনো প্রধান অফিস যোগ করা হয়নি।" },
+  "No head offices added yet.":               { EN: "No head offices added yet.",               BN: "এখনো কোনো প্রধান কার্যালয় যোগ করা হয়নি।" },
   "offices":                                  { EN: "offices",                                  BN: "অফিস" },
-  "Add Head Office":                          { EN: "Add Head Office",                          BN: "প্রধান অফিস যোগ করুন" },
+  "Add Head Office":                          { EN: "Add Head Office",                          BN: "প্রধান কার্যালয় যোগ করুন" },
   "Office Name *":                            { EN: "Office Name *",                            BN: "অফিসের নাম *" },
-  "e.g. Directorate Head Office":             { EN: "e.g. Directorate Head Office",             BN: "যেমন: অধিদপ্তর প্রধান অফিস" },
+  "e.g. Directorate Head Office":             { EN: "e.g. Directorate Head Office",             BN: "যেমন: অধিদপ্তর প্রধান কার্যালয়" },
   "Office Address":                           { EN: "Office Address",                           BN: "অফিসের ঠিকানা" },
 
   // ── District Office ───────────────────────────────────────────────────────
   "Search by name or address…":               { EN: "Search by name or address…",               BN: "নাম বা ঠিকানা দিয়ে অনুসন্ধান করুন…" },
-  "District Office Name":                     { EN: "District Office Name",                     BN: "জেলা অফিসের নাম" },
-  "No district offices found for":            { EN: "No district offices found for",            BN: "কোনো জেলা অফিস পাওয়া যায়নি" },
-  "No district offices added yet.":           { EN: "No district offices added yet.",           BN: "এখনো কোনো জেলা অফিস যোগ করা হয়নি।" },
-  "Add District Office":                      { EN: "Add District Office",                      BN: "জেলা অফিস যোগ করুন" },
-  "District Office Name *":                   { EN: "District Office Name *",                   BN: "জেলা অফিসের নাম *" },
-  "e.g. Dhaka District Office":               { EN: "e.g. Dhaka District Office",               BN: "যেমন: ঢাকা জেলা অফিস" },
+  "District Office Name":                     { EN: "District Office Name",                     BN: "নির্বাহী প্রকৌশলীর কার্যালয়ের নাম" },
+  "No district offices found for":            { EN: "No district offices found for",            BN: "কোনো নির্বাহী প্রকৌশলীর কার্যালয় পাওয়া যায়নি" },
+  "No district offices added yet.":           { EN: "No district offices added yet.",           BN: "এখনো কোনো নির্বাহী প্রকৌশলীর কার্যালয় যোগ করা হয়নি।" },
+  "Add District Office":                      { EN: "Add District Office",                      BN: "নির্বাহী প্রকৌশলীর কার্যালয় যোগ করুন" },
+  "District Office Name *":                   { EN: "District Office Name *",                   BN: "নির্বাহী প্রকৌশলীর কার্যালয়ের নাম *" },
+  "e.g. Dhaka District Office":               { EN: "e.g. Dhaka District Office",               BN: "যেমন: ঢাকা নির্বাহী প্রকৌশলীর কার্যালয়" },
 
   // ── Circle Office ─────────────────────────────────────────────────────────
-  "Circle Office Name":                       { EN: "Circle Office Name",                       BN: "সার্কেল অফিসের নাম" },
-  "No circle offices found for":              { EN: "No circle offices found for",              BN: "কোনো সার্কেল অফিস পাওয়া যায়নি" },
-  "No circle offices added yet.":             { EN: "No circle offices added yet.",             BN: "এখনো কোনো সার্কেল অফিস যোগ করা হয়নি।" },
-  "Add Circle Office":                        { EN: "Add Circle Office",                        BN: "সার্কেল অফিস যোগ করুন" },
-  "Circle Office Name *":                     { EN: "Circle Office Name *",                     BN: "সার্কেল অফিসের নাম *" },
-  "e.g. Dhaka Circle Office":                 { EN: "e.g. Dhaka Circle Office",                 BN: "যেমন: ঢাকা সার্কেল অফিস" },
+  "Circle Office Name":                       { EN: "Circle Office Name",                       BN: "তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয়ের নাম" },
+  "No circle offices found for":              { EN: "No circle offices found for",              BN: "কোনো তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয় পাওয়া যায়নি" },
+  "No circle offices added yet.":             { EN: "No circle offices added yet.",             BN: "এখনো কোনো তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয় যোগ করা হয়নি।" },
+  "Add Circle Office":                        { EN: "Add Circle Office",                        BN: "তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয় যোগ করুন" },
+  "Circle Office Name *":                     { EN: "Circle Office Name *",                     BN: "তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয়ের নাম *" },
+  "e.g. Dhaka Circle Office":                 { EN: "e.g. Dhaka Circle Office",                 BN: "যেমন: ঢাকা তত্ত্বাবধায়ক প্রকৌশলীর কার্যালয়" },
 
   // ── Designation ───────────────────────────────────────────────────────────
   "Search by name…":                          { EN: "Search by name…",                          BN: "নাম দিয়ে অনুসন্ধান করুন…" },
