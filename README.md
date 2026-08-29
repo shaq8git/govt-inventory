@@ -24,7 +24,7 @@ API routes are available under `/api/`:
 ## Import the workbook
 
 ```sh
-python manage.py import_store_workbook "store/images/final store calculation-24-25 (correction).xlsx"
+python manage.py import_store_workbook "backend/images/final store calculation-24-25 (correction).xlsx"
 ```
 
 Use `--dry-run` to parse the workbook without saving rows.
