@@ -8,6 +8,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "SolaimanLipi";
+  src: url("/fonts/SolaimanLipi.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -22,10 +30,10 @@
   font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
 }
 
-/* Bengali — Nikosh with system Bengali fallbacks */
+/* Bengali — SolaimanLipi with system Bengali fallbacks */
 :root:lang(bn),
 :root:lang(bn) * {
-  font-family: "Nikosh", "Noto Sans Bengali", "SolaimanLipi", "Bangla", serif;
+  font-family: "SolaimanLipi", "Nikosh", "Noto Sans Bengali", "Bangla", serif;
 }
 
 * {
