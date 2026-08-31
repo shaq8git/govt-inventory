@@ -189,9 +189,9 @@ export default function CircleOffice() {
       {/* Page header */}
       <section className="border-b border-slate-200 bg-[#f4f6f8]">
         <div className="mx-auto max-w-6xl px-4 pt-3 pb-2 sm:px-6 lg:px-8">
-          <h1 className="text-center text-xl font-semibold text-slate-950">Circle Office</h1>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="shrink-0 text-xl font-semibold text-slate-950">Circle Office</h1>
+            <div className="relative min-w-[200px] flex-1">
               <span className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transition-opacity duration-300 ${searchInput ? "opacity-0" : "opacity-100"}`}>
                 <SearchIcon className="h-4 w-4 text-red-500" />
               </span>
@@ -199,7 +199,7 @@ export default function CircleOffice() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by name or address…"
-                className="h-10 w-full rounded-lg border border-slate-400 bg-slate-200 py-0 pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none placeholder:font-normal placeholder:text-slate-600 transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 py-0 pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none placeholder:font-normal placeholder:text-slate-600 transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
               />
             </div>
             {searchInput && (
@@ -210,7 +210,7 @@ export default function CircleOffice() {
             )}
             {perms.c && (
               <button type="button" onClick={openModal}
-                className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700">
+                className="h-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-5 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600">
                 + Add
               </button>
             )}
@@ -224,7 +224,7 @@ export default function CircleOffice() {
           <div className="max-h-[480px] overflow-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="sticky top-0 z-10 border-b border-slate-500 bg-gray-500">
+                <tr className="sticky top-0 z-10 border-b border-cyan-700 bg-gradient-to-r from-cyan-600 to-emerald-600">
                   {["#", "Circle Office Name", "Office Address", "Edit"].map((h, i) => (
                     <th key={h} className={`whitespace-nowrap px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white ${i === 0 || i === 4 ? "text-center" : "text-left"}`}>
                       {h}
@@ -253,7 +253,7 @@ export default function CircleOffice() {
                     const rowNum = (safePage - 1) * ITEMS_PER_PAGE + idx + 1;
                     const isEven = idx % 2 === 1;
                     return (
-                      <tr key={o.id} className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-cyan-50/40 ${isEven ? "bg-gray-400" : "bg-white"}`}>
+                      <tr key={o.id} className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-cyan-50/40 ${isEven ? "bg-slate-50" : "bg-white"}`}>
                         <td className="h-12 px-5 align-middle text-center text-xs font-semibold text-slate-600">{rowNum}</td>
                         <td className="h-12 px-5 align-middle font-semibold text-slate-950">{o.circleofficename}</td>
                         <td className="h-12 px-5 align-middle text-slate-950">{o.officeaddress || "—"}</td>
@@ -292,7 +292,7 @@ export default function CircleOffice() {
                   <span key={n} className="flex items-center gap-1">
                     {i > 0 && arr[i - 1] !== n - 1 && <span className="px-1 text-xs text-slate-300">…</span>}
                     <button type="button" onClick={() => setCurrentPage(n)}
-                      className={`h-8 min-w-[2rem] rounded-lg border px-2 text-xs font-semibold transition ${safePage === n ? "border-slate-950 bg-slate-950 text-white shadow-sm" : "border-slate-300 bg-white text-slate-900 hover:border-cyan-400 hover:text-cyan-700"}`}>
+                      className={`h-8 min-w-[2rem] rounded-lg border px-2 text-xs font-semibold transition ${safePage === n ? "border-cyan-600 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white shadow-sm" : "border-slate-300 bg-white text-slate-900 hover:border-cyan-400 hover:text-cyan-700"}`}>
                       {n}
                     </button>
                   </span>
@@ -342,7 +342,7 @@ export default function CircleOffice() {
                 <button type="button" onClick={closeEditModal}
                   className="h-10 rounded-lg border border-slate-300 px-4 text-sm text-slate-600 transition hover:bg-slate-50">Cancel</button>
                 <button type="submit" disabled={editSaving}
-                  className="h-10 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-400">
+                  className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400">
                   {editSaving ? "Saving…" : "Save Changes"}
                 </button>
               </div>
@@ -384,7 +384,7 @@ export default function CircleOffice() {
                 <button type="button" onClick={closeModal}
                   className="h-10 rounded-lg border border-slate-300 px-4 text-sm text-slate-600 transition hover:bg-slate-50">Cancel</button>
                 <button type="submit" disabled={saving}
-                  className="h-10 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-400">
+                  className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400">
                   {saving ? "Saving…" : "Add"}
                 </button>
               </div>

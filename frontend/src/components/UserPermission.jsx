@@ -193,7 +193,7 @@ export default function UserPermission() {
           <div className="max-h-[540px] overflow-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="sticky top-0 z-10 border-b border-slate-500 bg-gray-500">
+                <tr className="sticky top-0 z-10 border-b border-cyan-700 bg-gradient-to-r from-cyan-600 to-emerald-600">
                   <th className="whitespace-nowrap px-4 py-2.5 text-center text-xs font-bold uppercase tracking-widest text-white">#</th>
                   <th className="whitespace-nowrap px-4 py-2.5 text-left   text-xs font-bold uppercase tracking-widest text-white">Code</th>
                   <th className="whitespace-nowrap px-4 py-2.5 text-left   text-xs font-bold uppercase tracking-widest text-white">Menu Item</th>
@@ -278,7 +278,7 @@ export default function UserPermission() {
             <button
               type="button"
               onClick={handleSubmit}
-              className="h-10 rounded-lg bg-slate-950 px-8 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-8 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600"
             >
               Submit
             </button>

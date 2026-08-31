@@ -111,19 +111,19 @@ export default function BudgetList() {
 
       <div className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6">
 
-        <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <p className="py-10 text-center text-sm text-slate-400">Loading…</p>
           ) : (
             <table className="min-w-full border-separate border-spacing-0 text-sm">
-              <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-left">Date</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-left">Budget No</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-left">Customer</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-center">Items</th>
-                  <th className="border-b border-slate-700 px-3 py-3 text-center">Action</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-center">#</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-left">Date</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-left">Budget No</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-left">Customer</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-center">Items</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,7 +135,7 @@ export default function BudgetList() {
                   const isDark = idx % 2 === 0;
                   const isSelected = selectedHead?.id === h.id;
                   return (
-                    <tr key={h.id} className={`${isSelected ? "bg-cyan-50" : isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"}`}>
+                    <tr key={h.id} className={`${isSelected ? "bg-cyan-50" : isDark ? "bg-slate-50" : "bg-white"} border-b ${isDark ? "border-slate-200" : "border-slate-200"}`}>
                       <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                       <td className="px-3 py-2 font-mono tabular-nums text-slate-950">{h.budgetdate}</td>
                       <td className="px-3 py-2 font-mono font-semibold text-slate-950">{h.budgetno}</td>

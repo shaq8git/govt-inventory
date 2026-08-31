@@ -142,7 +142,7 @@ export default function MenuItemList() {
             <button
               type="button"
               onClick={openModal}
-              className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              className="h-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-5 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600"
             >
               + Add
             </button>
@@ -156,7 +156,7 @@ export default function MenuItemList() {
           <div className="max-h-[580px] overflow-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="sticky top-0 z-10 border-b border-slate-500 bg-gray-500">
+                <tr className="sticky top-0 z-10 border-b border-cyan-700 bg-gradient-to-r from-cyan-600 to-emerald-600">
                   <th className="whitespace-nowrap px-4 py-2.5 text-center text-xs font-bold uppercase tracking-widest text-white">#</th>
                   <th className="whitespace-nowrap px-4 py-2.5 text-left   text-xs font-bold uppercase tracking-widest text-white">Code</th>
                   <th className="whitespace-nowrap px-4 py-2.5 text-left   text-xs font-bold uppercase tracking-widest text-white">Menu Item</th>
@@ -310,7 +310,7 @@ export default function MenuItemList() {
                   Cancel
                 </button>
                 <button type="submit"
-                  className="h-10 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-cyan-700">
+                  className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600">
                   Add
                 </button>
               </div>

@@ -202,7 +202,7 @@ export default function ApprovedRequisition() {
             <button
               onClick={handleGenerate}
               disabled={loading || !perms.c}
-              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-9 rounded-lg bg-cyan-700 px-5 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Loading…" : "Generate"}
             </button>
@@ -223,20 +223,20 @@ export default function ApprovedRequisition() {
 
         {/* Results table */}
         {searched && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full border-separate border-spacing-0 text-sm">
-                <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Date</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Req No</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Customer</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">Code</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Group</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Product Name</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Req Qty</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Appr Qty</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-center">#</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Date</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Req No</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Customer</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-center">Code</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Group</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Product Name</th>
+                    <th className="w-24 border-b border-slate-200 px-3 py-3 text-center">Req Qty</th>
+                    <th className="w-24 border-b border-slate-200 px-3 py-3 text-center">Appr Qty</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,7 +253,7 @@ export default function ApprovedRequisition() {
                         return (
                           <tr
                             key={r.id}
-                            className={`${isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"} last:border-0`}
+                            className={`${isDark ? "bg-slate-50" : "bg-white"} border-b ${isDark ? "border-slate-200" : "border-slate-200"} last:border-0`}
                           >
                             <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                             <td className="px-3 py-2 font-mono tabular-nums text-slate-950">{r.requisitiondate}</td>
@@ -267,7 +267,7 @@ export default function ApprovedRequisition() {
                           </tr>
                         );
                       })}
-                      <tr className="bg-slate-900 font-semibold text-slate-100">
+                      <tr className="bg-slate-100 font-semibold text-slate-900">
                         <td colSpan={7} className="px-3 py-2 text-right text-xs uppercase tracking-wide">Total</td>
                         <td className="px-3 py-2 text-center tabular-nums">{totalReq.toFixed(0)}</td>
                         <td className="px-3 py-2 text-center tabular-nums text-emerald-300">{totalAppr.toFixed(0)}</td>

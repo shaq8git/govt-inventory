@@ -180,9 +180,9 @@ export default function Designation() {
       {/* Page header */}
       <section className="border-b border-slate-200 bg-[#f4f6f8]">
         <div className="mx-auto max-w-6xl px-4 pt-3 pb-2 sm:px-6 lg:px-8">
-          <h1 className="text-center text-xl font-semibold text-slate-950">Designation</h1>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="shrink-0 text-xl font-semibold text-slate-950">Designation</h1>
+            <div className="relative min-w-[200px] flex-1">
               <span
                 className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 transition-opacity duration-300 ${
                   searchInput ? "opacity-0" : "opacity-100"
@@ -194,7 +194,7 @@ export default function Designation() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by name…"
-                className="h-10 w-full rounded-lg border border-slate-400 bg-slate-200 py-0 pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none placeholder:font-normal placeholder:text-slate-600 transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 py-0 pl-10 pr-3 text-sm font-semibold text-slate-950 outline-none placeholder:font-normal placeholder:text-slate-600 transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
               />
             </div>
             {searchInput && (
@@ -210,7 +210,7 @@ export default function Designation() {
               <button
                 type="button"
                 onClick={openModal}
-                className="h-10 shrink-0 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                className="h-10 shrink-0 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-5 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600"
               >
                 + Add
               </button>
@@ -225,7 +225,7 @@ export default function Designation() {
           <div className="max-h-[480px] overflow-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="sticky top-0 z-10 border-b border-slate-500 bg-gray-500">
+                <tr className="sticky top-0 z-10 border-b border-cyan-700 bg-gradient-to-r from-cyan-600 to-emerald-600">
                   {COLS.map((h, i) => (
                     <th
                       key={h}
@@ -264,7 +264,7 @@ export default function Designation() {
                       <tr
                         key={d.id}
                         className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-cyan-50/40 ${
-                          isEven ? "bg-gray-400" : "bg-white"
+                          isEven ? "bg-slate-50" : "bg-white"
                         }`}
                       >
                         <td className="h-12 px-5 align-middle text-center text-xs font-semibold text-slate-600">
@@ -323,7 +323,7 @@ export default function Designation() {
                       onClick={() => setCurrentPage(n)}
                       className={`h-8 min-w-[2rem] rounded-lg border px-2 text-xs font-semibold transition ${
                         safePage === n
-                          ? "border-slate-950 bg-slate-950 text-white shadow-sm"
+                          ? "border-cyan-600 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white shadow-sm"
                           : "border-slate-300 bg-white text-slate-900 hover:border-cyan-400 hover:text-cyan-700"
                       }`}
                     >
@@ -388,7 +388,7 @@ export default function Designation() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="h-10 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400"
                 >
                   {saving ? "Saving…" : "Add"}
                 </button>
@@ -442,7 +442,7 @@ export default function Designation() {
                 <button
                   type="submit"
                   disabled={editSaving}
-                  className="h-10 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 text-sm font-semibold text-white transition hover:from-cyan-600 hover:to-emerald-600 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-400"
                 >
                   {editSaving ? "Saving…" : "Save Changes"}
                 </button>

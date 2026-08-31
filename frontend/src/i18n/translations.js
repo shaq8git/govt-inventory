@@ -31,6 +31,7 @@ const translations = {
   "Damage":                                   { EN: "Damage",                                   BN: "ক্ষতি" },
   "Purchase Planning":                        { EN: "Purchase Planning",                        BN: "ক্রয় পরিকল্পনা" },
   "Users":                                    { EN: "Users",                                    BN: "ব্যবহারকারী" },
+  "Reports":                                  { EN: "Reports",                                  BN: "প্রতিবেদন" },
   "User Registration":                        { EN: "User Registration",                        BN: "ব্যবহারকারী নিবন্ধন" },
   "User Role":                                { EN: "User Role",                                BN: "ব্যবহারকারীর ভূমিকা" },
   "User Permission":                          { EN: "User Permission",                          BN: "ব্যবহারকারীর অনুমতি" },
@@ -74,7 +75,7 @@ const translations = {
   "Password":                                 { EN: "Password",                                 BN: "পাসওয়ার্ড" },
   "Invalid username or password.":            { EN: "Invalid username or password.",            BN: "ব্যবহারকারীর নাম অথবা পাসওয়ার্ড সঠিক হয়নি। আবার চেষ্টা করুন।" },
   "Signing in…":                              { EN: "Signing in…",                              BN: "সাইন ইন হচ্ছে…" },
-  "Stock & Inventory Management System":      { EN: "Stock & Inventory Management System",      BN: "স্টক ও ইনভেন্টরি ব্যবস্থাপনা সিস্টেম" },
+  "Stock & Inventory Management System":      { EN: "Stock & Inventory Management System",      BN: "স্টোর ম্যানেজমেন্ট সিস্টেম" },
   "Enter your credentials to continue":       { EN: "Enter your credentials to continue",       BN: "চালিয়ে যেতে আপনার তথ্য প্রবেশ করান" },
   "All rights reserved.":                     { EN: "All rights reserved.",                     BN: "সর্বস্বত্ব সংরক্ষিত।" },
 

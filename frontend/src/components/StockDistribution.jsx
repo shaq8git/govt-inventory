@@ -178,7 +178,7 @@ export default function StockDistribution() {
               </thead>
               <tbody>
                 {filteredItems.map((item) => (
-                  <tr key={item.itemNumber} className="odd:bg-white even:bg-gray-300">
+                  <tr key={item.itemNumber} className="odd:bg-white even:bg-slate-50">
                     <td className="sticky left-0 z-10 border-b border-slate-100 bg-inherit px-3 py-3 font-medium text-slate-600">
                       {item.itemNumber}
                     </td>
@@ -209,10 +209,10 @@ export default function StockDistribution() {
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="sticky bottom-0 bg-slate-900 text-sm font-semibold text-white">
+              <tfoot className="sticky bottom-0 bg-slate-100 text-sm font-semibold text-slate-900">
                 <tr>
-                  <td className="sticky left-0 z-20 bg-slate-900 px-3 py-3" />
-                  <td className="sticky left-16 z-20 bg-slate-900 px-3 py-3">
+                  <td className="sticky left-0 z-20 bg-slate-100 px-3 py-3" />
+                  <td className="sticky left-16 z-20 bg-slate-100 px-3 py-3">
                     {selectedMonth} · {selectedDate}
                   </td>
                   <td className="px-3 py-3" />

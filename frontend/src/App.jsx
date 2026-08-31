@@ -597,79 +597,85 @@ export default function App() {
     <div className="min-h-screen bg-white text-slate-900">
       <div className="flex min-h-screen">
         {sidebarOpen && (
-          <aside className="hidden w-[312px] shrink-0 border-r border-slate-200/80 bg-slate-950 px-3 py-3 text-slate-100 shadow-[24px_0_80px_rgba(15,23,42,0.14)] lg:flex lg:flex-col">
-            <img
-              src="/images/govLogo3.webp"
-              alt="Government logo"
-              className="h-[80px] w-full object-contain"
-            />
+          <aside className="hidden w-[248px] shrink-0 border-r border-slate-200/80 bg-emerald-600 text-slate-100 shadow-[24px_0_80px_rgba(15,23,42,0.14)] lg:flex lg:flex-col">
+            <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+              <div className="flex flex-col items-center px-2 py-4">
+                <p className="text-center text-xl font-bold text-lime-400">
+                  স্টোর ম্যানেজমেন্ট সিস্টেম
+                </p>
+              </div>
 
-            <nav className="mt-6 flex-1 space-y-3 overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => setPage("dashboard")}
-                className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
-                  page === "dashboard"
-                    ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-cyan-300">
-                  <IconHome className="h-5 w-5" />
-                </span>
-                <span className="font-semibold">Dashboard</span>
-              </button>
+              <nav className="mt-4 flex-1 space-y-1.5 overflow-y-auto pr-0.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent">
+                <button
+                  type="button"
+                  onClick={() => setPage("dashboard")}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
+                    page === "dashboard"
+                      ? "bg-lime-400 text-slate-950 shadow-lg shadow-lime-500/20"
+                      : "text-white/90 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <IconHome className={`h-5 w-5 ${page === "dashboard" ? "text-slate-950" : "text-lime-400"}`} />
+                  <span className="font-semibold">Dashboard</span>
+                </button>
 
-              {filterMenuGroups(menuGroups, authUser?.userrole?.rolename).map((group) => {
-                const GroupIcon = group.icon;
-                const isOpen = openMenus[group.id];
+                <div className="my-3 h-px bg-white/10" />
 
-                return (
-                  <div key={group.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleMenu(group.id)}
-                      className="flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition hover:bg-white/5"
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8 text-cyan-300">
-                          <GroupIcon className="h-5 w-5" />
+                {filterMenuGroups(menuGroups, authUser?.userrole?.rolename).map((group) => {
+                  const GroupIcon = group.icon;
+                  const isOpen = openMenus[group.id];
+
+                  return (
+                    <div key={group.id} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleMenu(group.id)}
+                        className="group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition hover:bg-white/10"
+                      >
+                        <span className="flex items-center gap-3">
+                          <GroupIcon
+                            className={`h-4 w-4 shrink-0 transition ${
+                              isOpen ? "text-lime-300" : "text-white/80 group-hover:text-lime-300"
+                            }`}
+                          />
+                          <span className="text-[13px] font-semibold uppercase tracking-wide text-white/90 group-hover:text-white">
+                            {group.label}
+                          </span>
                         </span>
-                        <span className="text-sm font-semibold text-white">{group.label}</span>
-                      </span>
-                      <span className="text-slate-400">
-                        <IconChevron open={isOpen} />
-                      </span>
-                    </button>
+                        <span className="text-white/60 group-hover:text-white">
+                          <IconChevron open={isOpen} />
+                        </span>
+                      </button>
 
-                    {isOpen && (
-                      <div className="mt-1 space-y-1 pb-2">
-                        {group.items.map((item) => {
-                          const ItemIcon = item.icon;
-                          const active = page === item.id;
+                      {isOpen && (
+                        <div className="ml-[19px] space-y-0.5 border-l border-white/10 py-1 pl-4">
+                          {group.items.map((item) => {
+                            const ItemIcon = item.icon;
+                            const active = page === item.id;
 
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => setPage(item.id)}
-                              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm transition ${
-                                active
-                                  ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
-                                  : "text-slate-300 hover:bg-white/5 hover:text-white"
-                              }`}
-                            >
-                              <ItemIcon className="h-4 w-4" />
-                              <span className="font-medium">{item.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => setPage(item.id)}
+                                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                                  active
+                                    ? "bg-lime-400 text-slate-950 shadow-md shadow-lime-500/20"
+                                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                                }`}
+                              >
+                                <ItemIcon className="h-4 w-4 shrink-0" />
+                                <span className="font-medium">{item.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+            </div>
           </aside>
         )}
 

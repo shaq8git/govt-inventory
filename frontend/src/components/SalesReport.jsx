@@ -209,7 +209,7 @@ export default function SalesReport() {
             <button
               onClick={handleGenerate}
               disabled={loading || !perms.c}
-              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-9 rounded-lg bg-cyan-700 px-5 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Loading…" : "Generate"}
             </button>
@@ -229,20 +229,20 @@ export default function SalesReport() {
         </div>
 
         {searched && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full border-separate border-spacing-0 text-sm">
-                <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Date</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Invoice No</th>
-                    <th className="min-w-48 border-b border-slate-700 px-3 py-3 text-left">Product</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Customer</th>
-                    <th className="w-24 border-b border-slate-700 px-3 py-3 text-center">Qty</th>
-                    <th className="w-28 border-b border-slate-700 px-3 py-3 text-right">Rate</th>
-                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-right">Amount</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-left">Remark</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-center">#</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Date</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Invoice No</th>
+                    <th className="min-w-48 border-b border-slate-200 px-3 py-3 text-left">Product</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Customer</th>
+                    <th className="w-24 border-b border-slate-200 px-3 py-3 text-center">Qty</th>
+                    <th className="w-28 border-b border-slate-200 px-3 py-3 text-right">Rate</th>
+                    <th className="w-32 border-b border-slate-200 px-3 py-3 text-right">Amount</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-left">Remark</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -255,7 +255,7 @@ export default function SalesReport() {
                       {rows.map((row, idx) => {
                         const isDark = idx % 2 === 0;
                         return (
-                          <tr key={row.id} className={`${isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"} last:border-0`}>
+                          <tr key={row.id} className={`${isDark ? "bg-slate-50" : "bg-white"} border-b ${isDark ? "border-slate-200" : "border-slate-200"} last:border-0`}>
                             <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                             <td className="px-3 py-2 font-mono tabular-nums text-slate-950">{row.invoicedate ?? "—"}</td>
                             <td className="px-3 py-2 font-mono text-slate-950">{row.invoiceno ?? "—"}</td>
@@ -273,7 +273,7 @@ export default function SalesReport() {
                           </tr>
                         );
                       })}
-                      <tr className="bg-slate-900 font-semibold text-slate-100">
+                      <tr className="bg-slate-100 font-semibold text-slate-900">
                         <td colSpan={5} className="px-3 py-2 text-right text-xs uppercase tracking-wide">Total</td>
                         <td className="px-3 py-2 text-center tabular-nums">{totalQty}</td>
                         <td className="px-3 py-2" />

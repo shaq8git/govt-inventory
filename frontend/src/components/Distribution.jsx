@@ -221,22 +221,22 @@ export default function Distribution() {
 
         {/* Staged items */}
         {rows.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
             <table className="min-w-full border-separate border-spacing-0 text-sm">
-              <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                  <th className="min-w-64 border-b border-slate-700 px-3 py-3 text-left">Product</th>
-                  <th className="w-28 border-b border-slate-700 px-3 py-3 text-center">Quantity</th>
-                  <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Sales Rate</th>
-                  <th className="w-20 border-b border-slate-700 px-3 py-3 text-center">Remove</th>
+                  <th className="border-b border-slate-200 px-3 py-3 text-center">#</th>
+                  <th className="min-w-64 border-b border-slate-200 px-3 py-3 text-left">Product</th>
+                  <th className="w-28 border-b border-slate-200 px-3 py-3 text-center">Quantity</th>
+                  <th className="w-32 border-b border-slate-200 px-3 py-3 text-center">Sales Rate</th>
+                  <th className="w-20 border-b border-slate-200 px-3 py-3 text-center">Remove</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, idx) => {
                   const isDark = idx % 2 === 0;
                   return (
-                    <tr key={r.id} className={`${isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"}`}>
+                    <tr key={r.id} className={`${isDark ? "bg-slate-50" : "bg-white"} border-b ${isDark ? "border-slate-200" : "border-slate-200"}`}>
                       <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                       <td className="px-3 py-2 font-medium text-slate-950">{r.prodcode} — {r.product_name}</td>
                       <td className="px-3 py-2 text-center tabular-nums text-slate-950">{r.quantity}</td>

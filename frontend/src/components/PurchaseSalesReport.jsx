@@ -215,7 +215,7 @@ export default function PurchaseSalesReport() {
             <button
               onClick={handleGenerate}
               disabled={loading || !perms.c}
-              className="h-9 rounded bg-slate-800 px-5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-9 rounded-lg bg-cyan-700 px-5 text-sm font-semibold text-white transition hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Loading…" : "Generate"}
             </button>
@@ -264,17 +264,17 @@ export default function PurchaseSalesReport() {
 
         {/* Ledger table */}
         {searched && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full border-separate border-spacing-0 text-sm">
-                <thead className="bg-slate-900 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">#</th>
-                    <th className="border-b border-slate-700 px-3 py-3 text-center">Date</th>
-                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Opening Bal.</th>
-                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Purchase Qty</th>
-                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Sales Qty</th>
-                    <th className="w-32 border-b border-slate-700 px-3 py-3 text-center">Closing Bal.</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-center">#</th>
+                    <th className="border-b border-slate-200 px-3 py-3 text-center">Date</th>
+                    <th className="w-32 border-b border-slate-200 px-3 py-3 text-center">Opening Bal.</th>
+                    <th className="w-32 border-b border-slate-200 px-3 py-3 text-center">Purchase Qty</th>
+                    <th className="w-32 border-b border-slate-200 px-3 py-3 text-center">Sales Qty</th>
+                    <th className="w-32 border-b border-slate-200 px-3 py-3 text-center">Closing Bal.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,7 +293,7 @@ export default function PurchaseSalesReport() {
                         return (
                           <tr
                             key={row.date}
-                            className={`${isDark ? "bg-gray-400" : "bg-white"} border-b ${isDark ? "border-slate-500" : "border-slate-200"} last:border-0`}
+                            className={`${isDark ? "bg-slate-50" : "bg-white"} border-b ${isDark ? "border-slate-200" : "border-slate-200"} last:border-0`}
                           >
                             <td className="px-3 py-2 text-center text-xs font-semibold text-slate-950">{idx + 1}</td>
                             <td className="px-3 py-2 text-center font-mono tabular-nums text-slate-950">{row.date}</td>
@@ -316,7 +316,7 @@ export default function PurchaseSalesReport() {
                           </tr>
                         );
                       })}
-                      <tr className="bg-slate-900 font-semibold text-slate-100">
+                      <tr className="bg-slate-100 font-semibold text-slate-900">
                         <td colSpan={2} className="px-3 py-2 text-right text-xs uppercase tracking-wide">Total / Closing</td>
                         <td className="px-3 py-2" />
                         <td className="px-3 py-2 text-center tabular-nums text-emerald-300">{totalPur.toFixed(0)}</td>
